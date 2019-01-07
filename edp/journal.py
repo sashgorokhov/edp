@@ -1,11 +1,15 @@
+import datetime
 import logging
 import os
 import pathlib
 import queue
-import threading
 import time
 import json
 from typing import NamedTuple, IO, Optional, Iterator
+
+from edp import signals
+from edp.plugin import PluginManager
+from edp.utils import StoppableThread
 
 logger = logging.getLogger(__name__)
 
@@ -21,21 +25,23 @@ def get_file_end_pos(filename) -> int:
         return f.tell()
 
 
-class ReaderThread(threading.Thread):
-    _args: ReaderThreadArgs = None
-
+class Journal(StoppableThread):
     interval = 1
-    stop = False
+
+    def __init__(self, base_dir: pathlib.Path):
+        self._base_dir = base_dir
+        self._event_queue = queue.Queue()
+        super(Journal, self).__init__()
 
     def get_latest_file(self) -> Optional[pathlib.Path]:
-        files_list = sorted(self._args.base_dir.glob('Journal.*.log'), key=lambda path: os.path.getmtime(path))
+        files_list = sorted(self._base_dir.glob('Journal.*.log'), key=lambda path: os.path.getmtime(path))
         return files_list[-1] if len(files_list) else None
 
     def run(self):
         current_file: pathlib.Path = None
         last_pos = 0
 
-        while not self.stop:
+        while not self.is_stopped:
             latest_file = self.get_latest_file()
 
             if not latest_file:
@@ -70,37 +76,11 @@ class ReaderThread(threading.Thread):
                     logger.exception('Failed to parse journal line from file %s: %s', filename.name, line)
                     continue
 
-                self._args.event_queue.put_nowait(event)
+                self._event_queue.put_nowait(event)
 
             logger.debug('Read %s events', num_events)
 
             return f.tell()
-
-    def start(self):
-        self.stop = False
-        super(ReaderThread, self).start()
-
-
-class Journal:
-    def __init__(self, dir: pathlib.Path):
-        self._base_dir = dir
-        self._event_queue = queue.Queue()
-
-        self._reader_thread = ReaderThread(args=ReaderThreadArgs(self._base_dir, self._event_queue))
-
-    def __enter__(self):
-        self.start()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.stop()
-
-    def start(self):
-        self._reader_thread.stop = False
-        self._reader_thread.start()
-
-    def stop(self):
-        self._reader_thread.stop = True
 
     def __iter__(self) -> Iterator[dict]:
         while True:
@@ -108,6 +88,54 @@ class Journal:
 
     def get_last_event(self, block=True, timeout=None) -> dict:
         return self._event_queue.get(block=block, timeout=timeout)
+
+
+class Event(NamedTuple):
+    timestamp: datetime.datetime
+    name: str
+    data: dict
+
+
+def process_event(event: dict) -> Event:
+    if 'timestamp' not in event:
+        raise ValueError('Invalid event dict: missing timestamp field')
+    if 'event' not in event:
+        raise ValueError('Invalid event dict: missing event field')
+
+    timestamp_str = event.pop('timestamp').rstrip('Z')
+    timestamp = datetime.datetime.fromisoformat(timestamp_str)
+
+    name = event.pop('event')
+
+    return Event(timestamp, name, event)
+
+
+class JournalEventProcessor(StoppableThread):
+    def __init__(self, journal: Journal, plugin_manager: PluginManager):
+        self._journal = journal
+        self._plugin_manager = plugin_manager
+        super(JournalEventProcessor, self).__init__()
+
+    def start(self):
+        self._journal.start()
+        super(JournalEventProcessor, self).start()
+
+    def stop(self):
+        super(JournalEventProcessor, self).stop()
+        self._journal.stop()
+
+    def run(self):
+        while not self._journal.is_stopped and not self.is_stopped:
+            try:
+                event = self._journal.get_last_event(block=True, timeout=1)
+                try:
+                    processed_event = process_event(event)
+                except:
+                    logger.exception('Failed to process event: %s', event)
+                    continue
+                self._plugin_manager.emit(signals.JOURNAL_EVENT, event=processed_event)
+            except queue.Empty:
+                continue
 
 
 if __name__ == '__main__':
