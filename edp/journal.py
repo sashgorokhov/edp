@@ -1,10 +1,11 @@
+import collections
 import datetime
 import json
 import logging
 import os
 import pathlib
 import threading
-from typing import NamedTuple, Optional, List
+from typing import NamedTuple, Optional, List, Dict, Union, Any
 
 from edp import signals
 from edp.plugin import PluginManager
@@ -49,7 +50,7 @@ class JournalReader:
                         try:
                             event = process_event(line)
                         except:
-                            logger.exception('Failed to process event: %s', event)
+                            logger.exception('Failed to process event: %s', line)
                             continue
 
                         self._latest_file_events.append(event)
@@ -119,21 +120,22 @@ class JournalLiveEventThread(StoppableThread):
 class Event(NamedTuple):
     timestamp: datetime.datetime
     name: str
-    data: dict
+    data: Dict[str, Union[None, Any]]
     raw: str
 
 
 def process_event(event_line: str) -> Event:
-    event = json.loads(event_line)
+    event = collections.defaultdict(lambda: None)
+    event.update(json.loads(event_line))
 
     if 'timestamp' not in event:
         raise ValueError('Invalid event dict: missing timestamp field')
     if 'event' not in event:
         raise ValueError('Invalid event dict: missing event field')
 
-    timestamp_str = event.pop('timestamp').rstrip('Z')
+    timestamp_str = event['timestamp'].rstrip('Z')
     timestamp = datetime.datetime.fromisoformat(timestamp_str)
 
-    name = event.pop('event')
+    name: str = event['event']
 
     return Event(timestamp, name, event, event_line)

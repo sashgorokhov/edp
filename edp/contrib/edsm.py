@@ -45,7 +45,7 @@ class EDSMApi:
 
 
 class EDSMPlugin(BasePlugin):
-    settings = inject.attr(Settings)
+    settings: Settings = inject.attr(Settings)
 
     def __init__(self, *args, **kwargs):
         super(EDSMPlugin, self).__init__(*args, **kwargs)
@@ -54,7 +54,7 @@ class EDSMPlugin(BasePlugin):
 
     @property
     def enabled(self) -> bool:
-        return self.settings.edsm_api_key and self.settings.edsm_commander_name
+        return bool(self.settings.edsm_api_key and self.settings.edsm_commander_name)
 
     @property
     @functools.lru_cache()

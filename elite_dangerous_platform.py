@@ -8,7 +8,7 @@ from edp.thread import ThreadManager
 from edp.journal import JournalReader, JournalLiveEventThread
 from edp import signals
 from edp.settings import Settings
-from edp.contrib import edsm
+from edp.contrib import edsm, gamestate
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -42,9 +42,11 @@ def injection_config(binder: inject.Binder):
 inject.clear_and_configure(injection_config)
 
 logger.info('Loading plugins')
+plugin_manager.register_plugin_cls(edsm.EDSMPlugin)
+plugin_manager.register_plugin_cls(gamestate.GameState)
+
 plugin_manager.load_plugins()
 
-plugin_manager.register_plugin_cls(edsm.EDSMPlugin)
 
 thread_manager.add_threads(
     JournalLiveEventThread(journal_reader, plugin_manager),

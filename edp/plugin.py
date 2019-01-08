@@ -6,7 +6,7 @@ import inspect
 import logging
 import pathlib
 import queue
-from typing import List, Type, Iterator, Mapping, Callable, NamedTuple
+from typing import List, Type, Iterator, Mapping, Callable, NamedTuple, Dict
 
 from edp.thread import IntervalRunnerThread
 from edp.utils import StoppableThread
@@ -98,8 +98,8 @@ class SignalExecutorThread(StoppableThread):
 class PluginManager:
     def __init__(self, base_dir: pathlib.Path):
         self._base_dir = base_dir
-        self._plugins: List[BasePlugin] = []
-        self._callbacks: Mapping[str, List[Callable]] = collections.defaultdict(list)
+        self._plugins: Dict[Type[BasePlugin], BasePlugin] = {}
+        self._callbacks: Dict[str, List[Callable]] = collections.defaultdict(list)
         self._scheduler_threads: List[StoppableThread] = []
         self._signal_queue = queue.Queue()
 
@@ -131,9 +131,15 @@ class PluginManager:
 
     def register_plugin_cls(self, cls: Type[BasePlugin]):
         plugin = self._init_plugin(cls)
-        self._plugins.append(plugin)
+        self._plugins[cls] = plugin
         self._register_callbacks(plugin)
         self._register_scheduled_funcs(plugin)
+
+    def __getitem__(self, item: Type[BasePlugin]) -> BasePlugin:
+        if isinstance(item, type) and issubclass(item, BasePlugin):
+            return self._plugins[item]
+        else:
+            raise TypeError(f'Can accept only plugin class')
 
     def _is_module_plugin(self, path: pathlib.Path):
         raise NotImplementedError
@@ -152,7 +158,7 @@ class PluginManager:
             bound_method = _bind_method(method, plugin)
             bound_method = self._decorate_bound_method_callback(plugin, bound_method)
             self._callbacks[callback_name].append(bound_method)
-            logger.debug('Registered callback "%s" of %s', callback_name, plugin)
+            logger.debug('Registered callback "%s" of %s: %s', callback_name, plugin, bound_method)
 
     def _register_scheduled_funcs(self, plugin: BasePlugin):
         for method in _get_cls_methods(plugin.__class__):
@@ -163,7 +169,7 @@ class PluginManager:
             bound_method = self._decorate_bound_method_callback(plugin, bound_method)
             thread = IntervalRunnerThread(bound_method, interval=interval)
             self._scheduler_threads.append(thread)
-            logger.debug('Registered scheduled func %s to thread %s', method, thread)
+            logger.debug('Registered scheduled func %s to thread %s', bound_method, thread)
 
     def _decorate_bound_method_callback(self, plugin: BasePlugin, method):
         return enabled_only(plugin)(method)

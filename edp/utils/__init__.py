@@ -1,5 +1,8 @@
+import logging
 import threading
 import time
+
+logger = logging.getLogger(__name__)
 
 
 class StoppableThread(threading.Thread):
@@ -30,3 +33,12 @@ class StoppableThread(threading.Thread):
             else:
                 time.sleep(interval)
                 interval = 0
+
+
+def catch_errors(func):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except:
+            logger.exception('Error in %s', func)
+    return wrapper
