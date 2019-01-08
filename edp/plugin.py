@@ -91,5 +91,3 @@ class PluginManager:
                 logger.exception('Error executing callback "%s" %s', name, func)
 
         return results
-
-

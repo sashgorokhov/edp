@@ -54,4 +54,5 @@ with thread_manager:
     root = tk.Tk()
     window = MainWindow(root, plugin_manager)
     plugin_manager.emit(signals.WINDOW_CREATED, window=window)
+    plugin_manager.emit(signals.INIT_COMPLETE)
     root.mainloop()
