@@ -70,23 +70,17 @@ class Journal(StoppableThread):
         with open(filename, 'r') as f:
             f.seek(pos, os.SEEK_SET)
             for num_events, line in enumerate(f.readlines()):
-                try:
-                    event = json.loads(line)
-                except:
-                    logger.exception('Failed to parse journal line from file %s: %s', filename.name, line)
-                    continue
-
-                self._event_queue.put_nowait(event)
+                self._event_queue.put_nowait(line)
 
             logger.debug('Read %s events', num_events)
 
             return f.tell()
 
-    def __iter__(self) -> Iterator[dict]:
+    def __iter__(self) -> Iterator[str]:
         while True:
             yield self.get_last_event()
 
-    def get_last_event(self, block=True, timeout=None) -> dict:
+    def get_last_event(self, block=True, timeout=None) -> str:
         return self._event_queue.get(block=block, timeout=timeout)
 
 
@@ -94,9 +88,12 @@ class Event(NamedTuple):
     timestamp: datetime.datetime
     name: str
     data: dict
+    raw: str
 
 
-def process_event(event: dict) -> Event:
+def process_event(event_line: str) -> Event:
+    event = json.loads(event_line)
+
     if 'timestamp' not in event:
         raise ValueError('Invalid event dict: missing timestamp field')
     if 'event' not in event:
@@ -107,7 +104,7 @@ def process_event(event: dict) -> Event:
 
     name = event.pop('event')
 
-    return Event(timestamp, name, event)
+    return Event(timestamp, name, event, event_line)
 
 
 class JournalEventProcessor(StoppableThread):
@@ -119,11 +116,11 @@ class JournalEventProcessor(StoppableThread):
     def run(self):
         while not self._journal.is_stopped and not self.is_stopped:
             try:
-                event = self._journal.get_last_event(block=True, timeout=1)
+                event_line = self._journal.get_last_event(block=True, timeout=1)
                 try:
-                    processed_event = process_event(event)
+                    processed_event = process_event(event_line)
                 except:
-                    logger.exception('Failed to process event: %s', event)
+                    logger.exception('Failed to process event: %s', event_line)
                     continue
                 self._plugin_manager.emit(signals.JOURNAL_EVENT, event=processed_event)
             except queue.Empty:
