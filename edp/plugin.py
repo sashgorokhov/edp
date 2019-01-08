@@ -4,7 +4,10 @@ import importlib.util
 import logging
 import pathlib
 import inspect
-from typing import List, Type, Iterator, Mapping, Callable, Any
+import queue
+from typing import List, Type, Iterator, Mapping, Callable, Any, NamedTuple
+
+from edp.utils import StoppableThread
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +32,40 @@ def _get_plugin_cls(module) -> Iterator[Type[BasePlugin]]:
             yield value
 
 
+class SignalItem(NamedTuple):
+    name: str
+    callbacks: List[Callable]
+    kwargs: dict
+
+
+class SignalExecutorThread(StoppableThread):
+    def __init__(self, signal_queue: queue.Queue):
+        self._signal_queue = signal_queue
+        super(SignalExecutorThread, self).__init__()
+
+    def run(self):
+        while not self.is_stopped:
+            try:
+                signal_item: SignalItem = self._signal_queue.get(block=True, timeout=1)
+            except queue.Empty:
+                continue
+
+            self.execute_signal(signal_item)
+
+    def execute_signal(self, signal_item: SignalItem):
+        for func in signal_item.callbacks:
+            try:
+                func(**signal_item.kwargs)
+            except:
+                logger.exception('Error executing callback "%s" %s', signal_item.name, func)
+
+
 class PluginManager:
     def __init__(self, base_dir: pathlib.Path):
         self._base_dir = base_dir
         self._plugins: List[BasePlugin] = []
         self._callbacks: Mapping[str, List[Callable]] = collections.defaultdict(list)
+        self._signal_queue = queue.Queue()
 
     def load_plugins(self):
         for path in self._base_dir.iterdir():
@@ -80,14 +112,8 @@ class PluginManager:
             self._callbacks[callback_name].append(value.__get__(plugin, cls))
             logger.debug('Registered callback "%s" of %s', callback_name, plugin)
 
-    def emit(self, name, **kwargs) -> List[Any]:
+    def emit(self, name, **kwargs):
         logger.debug('Emitting signal: %s', name)
-        results = []
-
-        for func in self._callbacks.get(name, []):
-            try:
-                results.append(func(**kwargs))
-            except:
-                logger.exception('Error executing callback "%s" %s', name, func)
-
-        return results
+        callbacks = self._callbacks.get(name, [])
+        if callbacks:
+            self._signal_queue.put_nowait(SignalItem(name, callbacks, kwargs))

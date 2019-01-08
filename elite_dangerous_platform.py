@@ -3,7 +3,7 @@ import tkinter as tk
 import inject
 
 from edp.gui import MainWindow
-from edp.plugin import PluginManager
+from edp.plugin import PluginManager, SignalExecutorThread
 from edp.thread import ThreadManager
 from edp.journal import JournalEventProcessor, Journal
 from edp import signals
@@ -41,7 +41,8 @@ journal = Journal(settings.journal_dir)
 
 thread_manager.add_threads(
     journal,
-    JournalEventProcessor(journal, plugin_manager)
+    JournalEventProcessor(journal, plugin_manager),
+    SignalExecutorThread(plugin_manager._signal_queue)
 )
 
 
