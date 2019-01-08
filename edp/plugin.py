@@ -1,12 +1,14 @@
 import abc
 import collections
+import functools
 import importlib.util
+import inspect
 import logging
 import pathlib
-import inspect
 import queue
-from typing import List, Type, Iterator, Mapping, Callable, Any, NamedTuple
+from typing import List, Type, Iterator, Mapping, Callable, NamedTuple
 
+from edp.thread import IntervalRunnerThread
 from edp.utils import StoppableThread
 
 logger = logging.getLogger(__name__)
@@ -18,11 +20,22 @@ def callback(name=None):
         name = name or func.__name__
         func.__is_callback__ = name
         return func
+
+    return decor
+
+
+def scheduled(interval):
+    def decor(func):
+        func.__scheduled__ = interval
+        return func
+
     return decor
 
 
 class BasePlugin(metaclass=abc.ABCMeta):
-    pass
+    @property
+    def enabled(self) -> bool:
+        return True
 
 
 def _get_plugin_cls(module) -> Iterator[Type[BasePlugin]]:
@@ -32,10 +45,39 @@ def _get_plugin_cls(module) -> Iterator[Type[BasePlugin]]:
             yield value
 
 
+def _get_cls_methods(cls: Type) -> Iterator:
+    for _, t, _, value in inspect.classify_class_attrs(cls):
+        if t == 'method':
+            yield value
+
+
+def _bind_method(func, obj):
+    return func.__get__(obj, obj.__class__)
+
+
+def enabled_only(plugin: BasePlugin):
+    def decor(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            if plugin.enabled:
+                return func(*args, **kwargs)
+
+        return wrapper
+
+    return decor
+
+
 class SignalItem(NamedTuple):
     name: str
     callbacks: List[Callable]
     kwargs: dict
+
+    def execute(self):
+        for callback in self.callbacks:
+            try:
+                callback(**self.kwargs)
+            except:
+                logger.exception('Error calling signal "%s" callback %s', self.name, callback)
 
 
 class SignalExecutorThread(StoppableThread):
@@ -50,14 +92,7 @@ class SignalExecutorThread(StoppableThread):
             except queue.Empty:
                 continue
 
-            self.execute_signal(signal_item)
-
-    def execute_signal(self, signal_item: SignalItem):
-        for func in signal_item.callbacks:
-            try:
-                func(**signal_item.kwargs)
-            except:
-                logger.exception('Error executing callback "%s" %s', signal_item.name, func)
+            signal_item.execute()
 
 
 class PluginManager:
@@ -65,6 +100,7 @@ class PluginManager:
         self._base_dir = base_dir
         self._plugins: List[BasePlugin] = []
         self._callbacks: Mapping[str, List[Callable]] = collections.defaultdict(list)
+        self._scheduler_threads: List[StoppableThread] = []
         self._signal_queue = queue.Queue()
 
     def load_plugins(self):
@@ -89,11 +125,15 @@ class PluginManager:
         for cls in _get_plugin_cls(module):
             if cls not in self._plugins:
                 try:
-                    plugin = self._init_plugin(cls)
-                    self._plugins.append(plugin)
-                    self._register_callbacks(plugin)
+                    self.register_plugin_cls(cls)
                 except:
                     logger.exception('Failed to initialize plugin %s from %s', cls, path)
+
+    def register_plugin_cls(self, cls: Type[BasePlugin]):
+        plugin = self._init_plugin(cls)
+        self._plugins.append(plugin)
+        self._register_callbacks(plugin)
+        self._register_scheduled_funcs(plugin)
 
     def _is_module_plugin(self, path: pathlib.Path):
         raise NotImplementedError
@@ -105,12 +145,28 @@ class PluginManager:
         return cls()
 
     def _register_callbacks(self, plugin: BasePlugin):
-        for name, t, cls, value in inspect.classify_class_attrs(plugin.__class__):
-            if t != 'method' or not hasattr(value, '__is_callback__'):
+        for method in _get_cls_methods(plugin.__class__):
+            if not hasattr(method, '__is_callback__'):
                 continue
-            callback_name = getattr(value, '__is_callback__')
-            self._callbacks[callback_name].append(value.__get__(plugin, cls))
+            callback_name = getattr(method, '__is_callback__')
+            bound_method = _bind_method(method, plugin)
+            bound_method = self._decorate_bound_method_callback(plugin, bound_method)
+            self._callbacks[callback_name].append(bound_method)
             logger.debug('Registered callback "%s" of %s', callback_name, plugin)
+
+    def _register_scheduled_funcs(self, plugin: BasePlugin):
+        for method in _get_cls_methods(plugin.__class__):
+            if not hasattr(method, '__scheduled__'):
+                continue
+            interval = getattr(method, '__scheduled__')
+            bound_method = _bind_method(method, plugin)
+            bound_method = self._decorate_bound_method_callback(plugin, bound_method)
+            thread = IntervalRunnerThread(bound_method, interval=interval)
+            self._scheduler_threads.append(thread)
+            logger.debug('Registered scheduled func %s to thread %s', method, thread)
+
+    def _decorate_bound_method_callback(self, plugin: BasePlugin, method):
+        return enabled_only(plugin)(method)
 
     def emit(self, name, **kwargs):
         logger.debug('Emitting signal: %s', name)
