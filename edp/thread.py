@@ -1,9 +1,7 @@
 import logging
-import time
 from typing import List, Callable
 
 from edp.utils import StoppableThread
-
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +19,7 @@ class IntervalRunnerThread(StoppableThread):
             except:
                 logger.exception('Error executing interval function %s', self._target)
             finally:
-                time.sleep(self._interval)
+                self.sleep(self._interval)
 
 
 class ThreadManager:

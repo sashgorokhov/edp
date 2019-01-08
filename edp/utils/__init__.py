@@ -1,4 +1,5 @@
 import threading
+import time
 
 
 class StoppableThread(threading.Thread):
@@ -20,3 +21,12 @@ class StoppableThread(threading.Thread):
     @property
     def is_stopped(self):
         return self._stopped
+
+    def sleep(self, interval: int):
+        while interval > 0 and not self.is_stopped:
+            if interval > 1:
+                interval -= 1
+                time.sleep(1)
+            else:
+                time.sleep(interval)
+                interval = 0
