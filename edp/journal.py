@@ -1,11 +1,11 @@
 import datetime
+import json
 import logging
 import os
 import pathlib
 import queue
-import time
-import json
-from typing import NamedTuple, IO, Optional, Iterator
+import threading
+from typing import NamedTuple, Optional, List
 
 from edp import signals
 from edp.plugin import PluginManager
@@ -25,28 +25,63 @@ def get_file_end_pos(filename) -> int:
         return f.tell()
 
 
-class Journal(StoppableThread):
-    interval = 1
-
+class JournalReader:
     def __init__(self, base_dir: pathlib.Path):
         self._base_dir = base_dir
-        self._event_queue = queue.Queue()
-        super(Journal, self).__init__()
+        self._latest_file_mtime = None
+        self._latest_file_events: List['Event'] = []
+        self._latest_file = None
+        self._lock = threading.Lock()
 
     def get_latest_file(self) -> Optional[pathlib.Path]:
         files_list = sorted(self._base_dir.glob('Journal.*.log'), key=lambda path: os.path.getmtime(path))
         return files_list[-1] if len(files_list) else None
+
+    def get_latest_file_events(self) -> List['Event']:
+        latest_file = self.get_latest_file()
+        latest_file_mtime = os.path.getmtime(latest_file)
+
+        if latest_file is None:
+            return []
+
+        if latest_file != self._latest_file or latest_file_mtime != self._latest_file_mtime:
+            with self._lock:
+                self._latest_file = latest_file
+                self._latest_file_mtime = latest_file_mtime
+                self._latest_file_events = []
+
+                with open(self._latest_file, 'r') as f:
+                    for line in f.readlines():
+                        try:
+                            event = process_event(line)
+                        except:
+                            logger.exception('Failed to process event: %s', event)
+                            continue
+
+                        self._latest_file_events.append(event)
+
+        return self._latest_file_events
+
+
+class JournalLiveEventThread(StoppableThread):
+    interval = 1
+
+    def __init__(self, journal_reader: JournalReader, plugin_manager: PluginManager):
+        super(JournalLiveEventThread, self).__init__()
+
+        self._journal_reader = journal_reader
+        self._plugin_manager = plugin_manager
 
     def run(self):
         current_file: pathlib.Path = None
         last_pos = 0
 
         while not self.is_stopped:
-            latest_file = self.get_latest_file()
+            latest_file = self._journal_reader.get_latest_file()
 
             if not latest_file:
                 logger.debug('No journal files found')
-                time.sleep(self.interval)
+                self.sleep(self.interval)
                 continue
 
             if latest_file != current_file:
@@ -62,26 +97,29 @@ class Journal(StoppableThread):
 
             last_pos = self.read_file(current_file, last_pos)
 
-            time.sleep(self.interval)
+            self.sleep(self.interval)
 
     def read_file(self, filename: pathlib.Path, pos: int = 0) -> int:
         num_events = 0
 
         with open(filename, 'r') as f:
             f.seek(pos, os.SEEK_SET)
+
             for num_events, line in enumerate(f.readlines()):
-                self._event_queue.put_nowait(line)
+                self.process_line(line)
 
             logger.debug('Read %s events', num_events)
 
             return f.tell()
 
-    def __iter__(self) -> Iterator[str]:
-        while True:
-            yield self.get_last_event()
+    def process_line(self, line: str):
+        try:
+            processed_event = process_event(line)
+        except:
+            logger.exception('Failed to process event: %s', line)
+            return
 
-    def get_last_event(self, block=True, timeout=None) -> str:
-        return self._event_queue.get(block=block, timeout=timeout)
+        self._plugin_manager.emit(signals.JOURNAL_EVENT, event=processed_event)
 
 
 class Event(NamedTuple):
@@ -105,34 +143,3 @@ def process_event(event_line: str) -> Event:
     name = event.pop('event')
 
     return Event(timestamp, name, event, event_line)
-
-
-class JournalEventProcessor(StoppableThread):
-    def __init__(self, journal: Journal, plugin_manager: PluginManager):
-        self._journal = journal
-        self._plugin_manager = plugin_manager
-        super(JournalEventProcessor, self).__init__()
-
-    def run(self):
-        while not self._journal.is_stopped and not self.is_stopped:
-            try:
-                event_line = self._journal.get_last_event(block=True, timeout=1)
-                try:
-                    processed_event = process_event(event_line)
-                except:
-                    logger.exception('Failed to process event: %s', event_line)
-                    continue
-                self._plugin_manager.emit(signals.JOURNAL_EVENT, event=processed_event)
-            except queue.Empty:
-                continue
-
-
-if __name__ == '__main__':
-    from utils import winpaths
-    logging.basicConfig(level=logging.DEBUG)
-
-    ed_journal_path = winpaths.get_known_folder_path(winpaths.KNOWN_FOLDERS.SavedGames, user_handle=winpaths.UserHandle.current) / 'Frontier Developments' / 'Elite Dangerous'
-
-    with Journal(ed_journal_path) as journal:
-        for event in journal:
-            print(event)

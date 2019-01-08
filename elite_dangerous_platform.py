@@ -5,7 +5,7 @@ import inject
 from edp.gui import MainWindow
 from edp.plugin import PluginManager, SignalExecutorThread
 from edp.thread import ThreadManager
-from edp.journal import JournalEventProcessor, Journal
+from edp.journal import JournalReader, JournalLiveEventThread
 from edp import signals
 from edp.settings import Settings
 from edp.contrib import edsm
@@ -28,16 +28,18 @@ logger.info('Initializing thread manager')
 thread_manager = ThreadManager()
 
 
+logger.info('Initializing flightlog journal handler')
+journal_reader = JournalReader(settings.journal_dir)
+
+
 def injection_config(binder: inject.Binder):
     binder.bind(Settings, settings)
     binder.bind(PluginManager, plugin_manager)
     binder.bind(ThreadManager, thread_manager)
+    binder.bind(JournalReader, journal_reader)
 
 
 inject.clear_and_configure(injection_config)
-
-logger.info('Initializing flightlog journal handler')
-journal = Journal(settings.journal_dir)
 
 logger.info('Loading plugins')
 plugin_manager.load_plugins()
@@ -45,8 +47,7 @@ plugin_manager.load_plugins()
 plugin_manager.register_plugin_cls(edsm.EDSMPlugin)
 
 thread_manager.add_threads(
-    journal,
-    JournalEventProcessor(journal, plugin_manager),
+    JournalLiveEventThread(journal_reader, plugin_manager),
     SignalExecutorThread(plugin_manager._signal_queue),
     *plugin_manager._scheduler_threads,
 )
