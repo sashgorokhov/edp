@@ -1,5 +1,6 @@
 import pathlib
 import functools
+from typing import Optional
 
 from edp.utils import winpaths
 
@@ -16,3 +17,11 @@ class Settings:
     def journal_dir(self) -> pathlib.Path:
         saved_games_dir = winpaths.get_known_folder_path(winpaths.KNOWN_FOLDERS.SavedGames)
         return saved_games_dir / 'Frontier Developments' / 'Elite Dangerous'
+
+    @property
+    def edsm_api_key(self) -> Optional[str]:
+        return
+
+    @property
+    def edsm_commander_name(self) -> Optional[str]:
+        return

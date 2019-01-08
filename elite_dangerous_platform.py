@@ -8,6 +8,7 @@ from edp.thread import ThreadManager
 from edp.journal import JournalEventProcessor, Journal
 from edp import signals
 from edp.settings import Settings
+from edp.contrib import edsm
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -38,17 +39,17 @@ inject.clear_and_configure(injection_config)
 logger.info('Initializing flightlog journal handler')
 journal = Journal(settings.journal_dir)
 
+logger.info('Loading plugins')
+plugin_manager.load_plugins()
+
+plugin_manager.register_plugin_cls(edsm.EDSMPlugin)
 
 thread_manager.add_threads(
     journal,
     JournalEventProcessor(journal, plugin_manager),
-    SignalExecutorThread(plugin_manager._signal_queue)
+    SignalExecutorThread(plugin_manager._signal_queue),
+    *plugin_manager._scheduler_threads,
 )
-
-
-logger.info('Loading plugins')
-plugin_manager.load_plugins()
-
 
 with thread_manager:
     logger.info('Initializing gui')
