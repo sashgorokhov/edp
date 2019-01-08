@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import pathlib
-import queue
 import threading
 from typing import NamedTuple, Optional, List
 
@@ -12,11 +11,6 @@ from edp.plugin import PluginManager
 from edp.utils import StoppableThread
 
 logger = logging.getLogger(__name__)
-
-
-class ReaderThreadArgs(NamedTuple):
-    base_dir: pathlib.Path
-    event_queue: queue.Queue
 
 
 def get_file_end_pos(filename) -> int:
