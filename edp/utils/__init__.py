@@ -2,14 +2,14 @@ import threading
 
 
 class StoppableThread(threading.Thread):
-    _stop = False
+    _stopped = False
 
     def start(self):
-        self._stop = False
+        self._stopped = False
         super(StoppableThread, self).start()
 
     def stop(self):
-        self._stop = True
+        self._stopped = True
 
     def __enter__(self):
         self.start()
@@ -19,4 +19,4 @@ class StoppableThread(threading.Thread):
 
     @property
     def is_stopped(self):
-        return self._stop
+        return self._stopped

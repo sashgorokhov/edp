@@ -116,14 +116,6 @@ class JournalEventProcessor(StoppableThread):
         self._plugin_manager = plugin_manager
         super(JournalEventProcessor, self).__init__()
 
-    def start(self):
-        self._journal.start()
-        super(JournalEventProcessor, self).start()
-
-    def stop(self):
-        super(JournalEventProcessor, self).stop()
-        self._journal.stop()
-
     def run(self):
         while not self._journal.is_stopped and not self.is_stopped:
             try:
