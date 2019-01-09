@@ -54,10 +54,11 @@ thread_manager.add_threads(
     *plugin_manager._scheduler_threads,
 )
 
+plugin_manager.emit(signals.INIT_COMPLETE)
+
 with thread_manager:
     logger.info('Initializing gui')
     root = tk.Tk()
     window = MainWindow(root, plugin_manager)
     plugin_manager.emit(signals.WINDOW_CREATED, window=window)
-    plugin_manager.emit(signals.INIT_COMPLETE)
     root.mainloop()

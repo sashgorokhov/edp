@@ -1,3 +1,5 @@
+import collections
+import dataclasses
 import logging
 import threading
 import time
@@ -41,4 +43,47 @@ def catch_errors(func):
             return func(*args, **kwargs)
         except:
             logger.exception('Error in %s', func)
+
     return wrapper
+
+
+def _dataclass_as_namedtuple_factory(obj):
+    if dataclasses.is_dataclass('a'):
+        return collections.namedtuple(obj.__class__.__name__, tuple(obj.__dataclass_fields__.keys()))(
+            **dataclasses.asdict(obj))
+    return tuple(obj)
+
+
+def dataclass_as_namedtuple(obj):
+    return dataclasses.astuple(obj, tuple_factory=_dataclass_as_namedtuple_factory)
+
+# T = TypeVar('T')
+#
+#
+# @contextlib.contextmanager
+# def shield_setattr(obj: T, sentinel) -> T:
+#     assert dataclasses.is_dataclass(obj)
+#
+#     if hasattr(obj.__class__.__setattr__, '__shielded__'):
+#         return obj
+#
+#     for field_name, field in obj.__dataclass_fields__.items():
+#         if dataclasses.is_dataclass(field.type):
+#             setattr(obj, field_name, shield_setattr(getattr(obj, field_name), sentinel))
+#
+#     def __shielded_setattr__(self, key, value):
+#         print(self, key, value, sentinel)
+#         if value is sentinel:
+#             return
+#         return super(self.__class__, self).__setattr__(key, value)
+#
+#     __shielded_setattr__.__shielded__ = True
+#
+#     original_setattr = obj.__setattr__
+#
+#     obj.__class__.__setattr__ = __shielded_setattr__
+#
+#     yield
+#
+#     obj.__class__.__setattr__ = original_setattr
+#
