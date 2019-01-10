@@ -2,6 +2,7 @@ import datetime
 import json
 import pathlib
 import tempfile
+import time
 from typing import List, Union, Dict
 
 import pytest
@@ -114,6 +115,8 @@ def test_get_latest_file_events_append(tempdir, journal_reader):
 
     assert len(events_list) == 1
     assert events_list[0].name == 'test 1'
+
+    time.sleep(0.5)
 
     with (tempdir / 'Journal.test.log').open(mode='a') as f:
         f.write('\n' + serialize_event({'timestamp': format_dt(datetime.datetime.now()), 'event': 'test 2'}))
