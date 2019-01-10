@@ -9,7 +9,6 @@ import inject
 from edp import signals, domains
 from edp.journal import JournalReader, Event
 from edp.plugin import BasePlugin, callback, PluginManager
-from edp.utils import catch_errors, dataclass_as_namedtuple
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +30,8 @@ class GameStateData(domains._BaseDomain):
     credits: int = 0
 
     def frozen(self) -> 'GameStateData':
-        return dataclass_as_namedtuple(self)
+        # TODO: Return immutable game state data
+        return self
 
 
 _GAME_STATE_MUTATIONS: Dict[str, Callable[[Event, GameStateData], None]] = {}
@@ -76,7 +76,6 @@ class GameState(BasePlugin):
         self.plugin_manager.emit(SIGNALS.GAME_STATE_SET, state=self.state)
         logger.debug('Initial state: %s', self._state)
 
-    @catch_errors
     def update_state(self, event: Event) -> bool:
         changed = False
 

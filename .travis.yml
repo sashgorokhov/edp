@@ -1,0 +1,14 @@
+language: python
+cache: pip
+
+python:
+  - "3.7"
+
+install:
+  - pip install -r requirements.txt -r requirements-dev.txt codecov
+
+script:
+  - pytest --color=auto --cov=edp --cov-report=term-missing tests/
+
+after_success:
+  - codecov

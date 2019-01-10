@@ -125,8 +125,7 @@ class Event(NamedTuple):
 
 
 def process_event(event_line: str) -> Event:
-    event = collections.defaultdict(lambda: None)
-    event.update(json.loads(event_line))
+    event = json.loads(event_line)
 
     if 'timestamp' not in event:
         raise ValueError('Invalid event dict: missing timestamp field')

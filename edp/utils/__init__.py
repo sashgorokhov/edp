@@ -19,6 +19,7 @@ class StoppableThread(threading.Thread):
 
     def __enter__(self):
         self.start()
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.stop()
@@ -48,14 +49,15 @@ def catch_errors(func):
 
 
 def _dataclass_as_namedtuple_factory(obj):
-    if dataclasses.is_dataclass('a'):
+    if dataclasses.is_dataclass(obj):
         return collections.namedtuple(obj.__class__.__name__, tuple(obj.__dataclass_fields__.keys()))(
             **dataclasses.asdict(obj))
     return tuple(obj)
 
 
 def dataclass_as_namedtuple(obj):
-    return dataclasses.astuple(obj, tuple_factory=_dataclass_as_namedtuple_factory)
+    raise NotImplementedError()
+    # return dataclasses.astuple(obj, tuple_factory=_dataclass_as_namedtuple_factory)
 
 # T = TypeVar('T')
 #

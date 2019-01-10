@@ -26,7 +26,7 @@ class ThreadManager:
     def __init__(self):
         self._threads: List[StoppableThread] = []
 
-    def add_interval_thread(self, func: Callable, interval=1):
+    def add_interval_thread(self, func: Callable, interval):
         thread = IntervalRunnerThread(func, interval=interval)
         self.add_thread(thread)
 
