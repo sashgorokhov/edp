@@ -14,11 +14,9 @@ from edp.utils import StoppableThread
 logger = logging.getLogger(__name__)
 
 
-def callback(name=None):
+def callback(*signals: str):
     def decor(func):
-        nonlocal name
-        name = name or func.__name__
-        func.__is_callback__ = name
+        func.__is_callback__ = signals
         return func
 
     return decor
@@ -154,11 +152,12 @@ class PluginManager:
         for method in _get_cls_methods(plugin.__class__):
             if not hasattr(method, '__is_callback__'):
                 continue
-            callback_name = getattr(method, '__is_callback__')
+            signal_names = getattr(method, '__is_callback__')
             bound_method = _bind_method(method, plugin)
             bound_method = self._decorate_bound_method_callback(plugin, bound_method)
-            self._callbacks[callback_name].append(bound_method)
-            logger.debug('Registered callback "%s" of %s: %s', callback_name, plugin, bound_method)
+            for signal_name in signal_names:
+                self._callbacks[signal_name].append(bound_method)
+                logger.debug('Registered callback "%s" of %s: %s', signal_name, plugin, bound_method)
 
     def _register_scheduled_funcs(self, plugin: BasePlugin):
         for method in _get_cls_methods(plugin.__class__):
