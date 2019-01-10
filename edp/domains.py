@@ -50,6 +50,18 @@ class MaterialStorage(_BaseDomain):
     encoded: Dict[str, Material] = dataclasses.field(default_factory=dict)
     manufactured: Dict[str, Material] = dataclasses.field(default_factory=dict)
 
+    _category_map = {
+        'Raw': 'raw',
+        'Encoded': 'encoded',
+        'Manufactured': 'manufactured'
+    }
+
+    def __getitem__(self, item):
+        if item in self._category_map:
+            return getattr(self, self._category_map[item])
+        # noinspection PyUnresolvedReferences
+        return super(MaterialStorage, self).__getitem__(item)
+
 
 @dataclasses.dataclass
 class Ship(_BaseDomain):

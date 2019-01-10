@@ -37,11 +37,12 @@ class GameStateData(domains._BaseDomain):
 _GAME_STATE_MUTATIONS: Dict[str, Callable[[Event, GameStateData], None]] = {}
 
 
-def mutation(event: str):
+def mutation(*events: str):
     def decor(func: Callable[[Event, GameStateData], GameStateData]):
-        if event in _GAME_STATE_MUTATIONS:
-            logger.warning('Mutation for event %s already registered: %s', event, _GAME_STATE_MUTATIONS[event])
-        _GAME_STATE_MUTATIONS[event] = func
+        for event in events:
+            if event in _GAME_STATE_MUTATIONS:
+                logger.warning('Mutation for event %s already registered: %s', event, _GAME_STATE_MUTATIONS[event])
+            _GAME_STATE_MUTATIONS[event] = func
         return func
 
     return decor
@@ -210,7 +211,7 @@ def reputation_event(event: Event, state: GameStateData):
 @mutation('EngineerProgress')
 def engineer_progress_event(event: Event, state: GameStateData):
     create_engineer = lambda e: domains.Engineer(
-        name=e['Name'],
+        name=e['Engineer'],
         id=e['EngineerID'],
         progress=e['Progress'],
         rank=e.get('Rank', None),
@@ -218,7 +219,7 @@ def engineer_progress_event(event: Event, state: GameStateData):
     )
 
     state.engineers = {e['EngineerID']: create_engineer(e) for e in event.data.get('Engineers', [])
-                       if 'EngineerID' in e and 'Name' in e and 'Progress' in e}
+                       if 'EngineerID' in e and 'Engineer' in e and 'Progress' in e}
 
 
 @mutation('Loadout')
@@ -252,3 +253,25 @@ def location_event(event: Event, state: GameStateData):
     state.location.faction = data['SystemFaction']
 
     # TODO: factions
+
+
+@mutation('Cargo')
+def cargo_event(event: Event, state: GameStateData):
+    pass
+    # TODO: Cargo
+
+
+@mutation('MaterialCollected')
+def material_collected_event(event: Event, state: GameStateData):
+    if not {'Category', 'Name', 'Count'}.issubset(event.data.keys()):
+        return
+
+    category = event.data['Category']
+    name = event.data['Name']
+    count = event.data['Count']
+
+    material_category = state.material_storage[category]
+    if name in material_category:
+        material_category[name] += count
+    else:
+        material_category[name] = domains.Material(name, count)

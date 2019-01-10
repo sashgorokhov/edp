@@ -120,7 +120,7 @@ class JournalLiveEventThread(StoppableThread):
 class Event(NamedTuple):
     timestamp: datetime.datetime
     name: str
-    data: Dict[str, Union[None, Any]]
+    data: Dict[str, Union[None, Any]]  # TODO: Make immutable
     raw: str
 
 
