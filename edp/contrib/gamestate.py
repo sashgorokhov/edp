@@ -6,7 +6,7 @@ from typing import List, Dict, Callable
 
 import inject
 
-from edp import signals, domains
+from edp import signals, entities
 from edp.journal import JournalReader, Event
 from edp.plugin import BasePlugin, callback, PluginManager
 
@@ -19,14 +19,14 @@ class SIGNALS:
 
 
 @dataclasses.dataclass
-class GameStateData(domains._BaseDomain):
-    commander: domains.Commander = domains.Commander()
-    material_storage: domains.MaterialStorage = domains.MaterialStorage()
-    ship: domains.Ship = domains.Ship()
-    rank: domains.Rank = domains.Rank()
-    reputation: domains.Reputation = domains.Reputation()
-    engineers: Dict[int, domains.Engineer] = dataclasses.field(default_factory=dict)
-    location: domains.Location = domains.Location()
+class GameStateData(entities._BaseDomain):
+    commander: entities.Commander = entities.Commander()
+    material_storage: entities.MaterialStorage = entities.MaterialStorage()
+    ship: entities.Ship = entities.Ship()
+    rank: entities.Rank = entities.Rank()
+    reputation: entities.Reputation = entities.Reputation()
+    engineers: Dict[int, entities.Engineer] = dataclasses.field(default_factory=dict)
+    location: entities.Location = entities.Location()
     credits: int = 0
 
     def frozen(self) -> 'GameStateData':
@@ -146,13 +146,13 @@ def commander_event(event: Event, state: GameStateData):
 
 @mutation('Materials')
 def materials_event(event: Event, state: GameStateData):
-    get_materials = lambda t: {m['Name']: domains.Material(m['Name'], m['Count'])
+    get_materials = lambda t: {m['Name']: entities.Material(m['Name'], m['Count'])
                                for m in event.data.get(t, [])
                                if 'Name' in m and 'Count' in m}
 
-    state.material_storage.raw: Dict[str, domains.Material] = get_materials('Raw')
-    state.material_storage.encoded: Dict[str, domains.Material] = get_materials('Encoded')
-    state.material_storage.manufactured: Dict[str, domains.Material] = get_materials('Manufactured')
+    state.material_storage.raw: Dict[str, entities.Material] = get_materials('Raw')
+    state.material_storage.encoded: Dict[str, entities.Material] = get_materials('Encoded')
+    state.material_storage.manufactured: Dict[str, entities.Material] = get_materials('Manufactured')
 
 
 @mutation('LoadGame')
@@ -209,7 +209,7 @@ def reputation_event(event: Event, state: GameStateData):
 
 @mutation('EngineerProgress')
 def engineer_progress_event(event: Event, state: GameStateData):
-    create_engineer = lambda e: domains.Engineer(
+    create_engineer = lambda e: entities.Engineer(
         name=e['Engineer'],
         id=e['EngineerID'],
         progress=e['Progress'],
@@ -273,4 +273,4 @@ def material_collected_event(event: Event, state: GameStateData):
     if name in material_category:
         material_category[name] += count
     else:
-        material_category[name] = domains.Material(name, count)
+        material_category[name] = entities.Material(name, count)
