@@ -6,7 +6,7 @@ import inspect
 import logging
 import pathlib
 import queue
-from typing import List, Type, Iterator, Callable, NamedTuple, Dict
+from typing import List, Type, Iterator, Callable, NamedTuple, Dict, TypeVar
 
 from edp.thread import IntervalRunnerThread
 from edp.utils import StoppableThread
@@ -93,6 +93,9 @@ class SignalExecutorThread(StoppableThread):
             signal_item.execute()
 
 
+T = TypeVar('T')
+
+
 class PluginManager:
     def __init__(self, base_dir: pathlib.Path):
         self._base_dir = base_dir
@@ -102,6 +105,10 @@ class PluginManager:
         self._signal_queue = queue.Queue()
 
     def load_plugins(self):
+        if not self._base_dir.exists():
+            logger.warning('Plugin dir does not exist: %s', self._base_dir)
+            return
+
         for path in self._base_dir.iterdir():
             try:
                 self.load_plugin(path)
@@ -141,7 +148,7 @@ class PluginManager:
         self._register_callbacks(plugin)
         self._register_scheduled_funcs(plugin)
 
-    def __getitem__(self, item: Type[BasePlugin]) -> BasePlugin:
+    def __getitem__(self, item: Type[T]) -> T:
         if isinstance(item, type) and issubclass(item, BasePlugin):
             return self._plugins[item]
         else:

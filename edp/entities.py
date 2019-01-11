@@ -1,11 +1,11 @@
 import dataclasses
 from operator import attrgetter, methodcaller
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
 
 UNKNOWN = 'unknown'
 
 
-class _BaseDomain:
+class _BaseEntity:
     __sentinel__ = object()
     __changed__ = False
 
@@ -13,14 +13,14 @@ class _BaseDomain:
         if value is self.__sentinel__:
             return
         if value != getattr(self, key, object()):
-            super(_BaseDomain, self).__setattr__('__changed__', True)
-        return super(_BaseDomain, self).__setattr__(key, value)
+            super(_BaseEntity, self).__setattr__('__changed__', True)
+        return super(_BaseEntity, self).__setattr__(key, value)
 
     def _dataclass_type_fields(self):
         for field_name, field in self.__dataclass_fields__.items():
             if dataclasses.is_dataclass(field.type):
                 obj = getattr(self, field_name)
-                if isinstance(obj, _BaseDomain):
+                if isinstance(obj, _BaseEntity):
                     yield obj
 
     @property
@@ -31,21 +31,35 @@ class _BaseDomain:
         self.__changed__ = False
         list(map(methodcaller('reset_changed'), self._dataclass_type_fields()))
 
+    def clear(self):
+        for field_name, field in self.__dataclass_fields__.items():
+            value = getattr(self, field_name)
+            if dataclasses.is_dataclass(field.type) and isinstance(value, _BaseEntity):
+                value.clear()
+            else:
+                if field.default is dataclasses.MISSING:
+                    if field.default_factory is dataclasses.MISSING:
+                        setattr(self, field_name, None)
+                    else:
+                        setattr(self, field_name, field.default_factory())
+                else:
+                    setattr(self, field_name, field.default)
+
+
+@dataclasses.dataclass()
+class Commander(_BaseEntity):
+    name: str = None
+    frontier_id: str = None
+
 
 @dataclasses.dataclass
-class Commander(_BaseDomain):
-    name: str = UNKNOWN
-    frontier_id: str = UNKNOWN
-
-
-@dataclasses.dataclass
-class Material(_BaseDomain):
+class Material(_BaseEntity):
     name: str
     count: int
 
 
 @dataclasses.dataclass
-class MaterialStorage(_BaseDomain):
+class MaterialStorage(_BaseEntity):
     raw: Dict[str, Material] = dataclasses.field(default_factory=dict)
     encoded: Dict[str, Material] = dataclasses.field(default_factory=dict)
     manufactured: Dict[str, Material] = dataclasses.field(default_factory=dict)
@@ -64,43 +78,43 @@ class MaterialStorage(_BaseDomain):
 
 
 @dataclasses.dataclass
-class Ship(_BaseDomain):
-    model: str = UNKNOWN
-    id: int = -1
-    name: str = UNKNOWN
-    ident: str = UNKNOWN
+class Ship(_BaseEntity):
+    model: str = None
+    id: int = None
+    name: str = None
+    ident: str = None
 
 
 @dataclasses.dataclass
-class Rank(_BaseDomain):
-    combat: int = 0
-    combat_progress: int = 0
+class Rank(_BaseEntity):
+    combat: int = None
+    combat_progress: int = None
 
-    trade: int = 0
-    trade_progress: int = 0
+    trade: int = None
+    trade_progress: int = None
 
-    explore: int = 0
-    explore_progress: int = 0
+    explore: int = None
+    explore_progress: int = None
 
-    empire: int = 0
-    empire_progress: int = 0
+    empire: int = None
+    empire_progress: int = None
 
-    federation: int = 0
-    federation_progress: int = 0
+    federation: int = None
+    federation_progress: int = None
 
-    cqc: int = 0
-    cqc_progress: int = 0
-
-
-@dataclasses.dataclass
-class Reputation(_BaseDomain):
-    empire: float = 0.0
-    federation: float = 0.0
-    alliance: float = 0.0
+    cqc: int = None
+    cqc_progress: int = None
 
 
 @dataclasses.dataclass
-class Engineer(_BaseDomain):
+class Reputation(_BaseEntity):
+    empire: float = None
+    federation: float = None
+    alliance: float = None
+
+
+@dataclasses.dataclass
+class Engineer(_BaseEntity):
     name: str
     id: int
     progress: str
@@ -109,15 +123,28 @@ class Engineer(_BaseDomain):
 
 
 @dataclasses.dataclass
-class Location(_BaseDomain):
+class Station(_BaseEntity):
+    market: int = None
+    name: str = None
+    type: str = None
+    faction: str = None
+    government: str = None
+    services: List[str] = dataclasses.field(default_factory=list)
+    economy: str = None
+
+
+@dataclasses.dataclass
+class Location(_BaseEntity):
     docked: bool = False
-    system: str = UNKNOWN
-    address: int = 0
-    pos: Tuple[float, float, float] = (0.0, 0.0, 0.0)
-    allegiance: str = UNKNOWN
-    economy: str = UNKNOWN
-    economy_second: str = UNKNOWN
-    government: str = UNKNOWN
-    security: str = UNKNOWN
-    population: int = 0
-    faction: str = UNKNOWN
+    supercruise: bool = False
+    system: str = None
+    address: int = None
+    pos: Tuple[float, float, float] = None
+    allegiance: str = None
+    economy: str = None
+    economy_second: str = None
+    government: str = None
+    security: str = None
+    population: int = None
+    faction: str = None
+    station: Station = dataclasses.field(default_factory=Station)

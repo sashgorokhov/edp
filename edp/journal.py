@@ -136,7 +136,7 @@ def process_event(event_line: str) -> Event:
         raise ValueError('Invalid event dict: missing event field')
 
     timestamp_str = event['timestamp'].rstrip('Z')
-    timestamp = datetime.datetime.fromisoformat(timestamp_str)
+    timestamp = datetime.datetime.strptime(timestamp_str, '%Y-%m-%dT%H:%M:%S')
 
     name: str = event['event']
 

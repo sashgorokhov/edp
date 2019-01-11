@@ -19,7 +19,7 @@ class SIGNALS:
 
 
 @dataclasses.dataclass
-class GameStateData(entities._BaseDomain):
+class GameStateData(entities._BaseEntity):
     commander: entities.Commander = entities.Commander()
     material_storage: entities.MaterialStorage = entities.MaterialStorage()
     ship: entities.Ship = entities.Ship()
@@ -93,52 +93,10 @@ class GameState(BasePlugin):
 
         return changed
 
-        # if event.name == 'SetUserShipName':
-        #    new_state['ship_id'] = event.data['ShipID']
-        #
-        # if event.name == 'ShipyardBuy':
-        #    new_state['ship_id'] = None
-        #
-        # if event.name == 'ShipyardSwap':
-        #    new_state['ship_id'] = event.data['ShipID']
-        #
-        # if event.name == 'Loadout':
-        #    new_state['ship_id'] = event.data['ShipID']
-        #
-        # if event.name == 'Undocked':
-        #    new_state['station_id'] = None
-        #    new_state['station'] = None
-        #
-        # if event.name in ('Location', 'FSDJump', 'Docked'):
-        #    if event.data['StarSystem'] != new_state['system']:
-        #        new_state['coordinates'] = None
-        #    if event.data['StarSystem'] in ('ProvingGround', 'CQC'):
-        #        new_state['system_id'] = None
-        #        new_state['system'] = None
-        #        new_state['coordinates'] = None
-        #    else:
-        #        if event.data['SystemAddress'] is not None:
-        #            new_state['system_id'] = event.data['SystemAddress']
-        #
-        #        new_state['system'] = event.data['StarSystem']
-        #
-        #        if event.data['StarPos'] is not None:
-        #            new_state['coordinates'] = event.data['StarPos']
-        #
-        #    if event.data['MarketID'] is not None:
-        #        new_state['station_id'] = event.data['MarketID']
-        #
-        #    if event.data['StationName'] is not None:
-        #        new_state['station'] = event.data['StationName']
-        #
-        # self.state = GameStateData(**new_state)
-        # return new_state != old_state
-
 
 @mutation('Commander')
 def commander_event(event: Event, state: GameStateData):
-    data: dict = collections.defaultdict(lambda: state.__sentinel__)
-    data.update(event.data)
+    data: dict = collections.defaultdict(lambda: state.__sentinel__, event.data)
 
     state.commander.name = data['Name']
     state.commander.frontier_id = data['FID']
@@ -157,8 +115,7 @@ def materials_event(event: Event, state: GameStateData):
 
 @mutation('LoadGame')
 def load_game_event(event: Event, state: GameStateData):
-    data: dict = collections.defaultdict(lambda: state.__sentinel__)
-    data.update(event.data)
+    data: dict = collections.defaultdict(lambda: state.__sentinel__, event.data)
 
     state.commander.name = data['Commander']
     state.commander.frontier_id = data['FID']
@@ -173,8 +130,7 @@ def load_game_event(event: Event, state: GameStateData):
 
 @mutation('Rank')
 def rank_event(event: Event, state: GameStateData):
-    data: dict = collections.defaultdict(lambda: state.__sentinel__)
-    data.update(event.data)
+    data: dict = collections.defaultdict(lambda: state.__sentinel__, event.data)
 
     state.rank.combat = data['Combat']
     state.rank.trade = data['Trade']
@@ -186,8 +142,7 @@ def rank_event(event: Event, state: GameStateData):
 
 @mutation('Progress')
 def progress_event(event: Event, state: GameStateData):
-    data: dict = collections.defaultdict(lambda: state.__sentinel__)
-    data.update(event.data)
+    data: dict = collections.defaultdict(lambda: state.__sentinel__, event.data)
 
     state.rank.combat_progres = data['Combat']
     state.rank.trade_progres = data['Trade']
@@ -199,8 +154,7 @@ def progress_event(event: Event, state: GameStateData):
 
 @mutation('Reputation')
 def reputation_event(event: Event, state: GameStateData):
-    data: dict = collections.defaultdict(lambda: state.__sentinel__)
-    data.update(event.data)
+    data: dict = collections.defaultdict(lambda: state.__sentinel__, event.data)
 
     state.reputation.federation = data['Federation']
     state.reputation.empire = data['Empire']
@@ -223,8 +177,7 @@ def engineer_progress_event(event: Event, state: GameStateData):
 
 @mutation('Loadout')
 def loadout_event(event: Event, state: GameStateData):
-    data: dict = collections.defaultdict(lambda: state.__sentinel__)
-    data.update(event.data)
+    data: dict = collections.defaultdict(lambda: state.__sentinel__, event.data)
 
     state.ship.model = data['Ship']
     state.ship.id = data['ShipID']
@@ -234,10 +187,9 @@ def loadout_event(event: Event, state: GameStateData):
     # TODO: Store hull value, modules, rebuy
 
 
-@mutation('Location')
+@mutation('Location', 'FSDJump')
 def location_event(event: Event, state: GameStateData):
-    data: dict = collections.defaultdict(lambda: state.__sentinel__)
-    data.update(event.data)
+    data: dict = collections.defaultdict(lambda: state.__sentinel__, event.data)
 
     state.location.docked = data['Docked']
     state.location.system = data['StarSystem']
@@ -251,7 +203,30 @@ def location_event(event: Event, state: GameStateData):
     state.location.population = data['Population']
     state.location.faction = data['SystemFaction']
 
+    if event.name == 'FSDJump':
+        state.location.supercruise = True
+
     # TODO: factions
+
+
+@mutation('Docked')
+def docked_event(event: Event, state: GameStateData):
+    data: dict = collections.defaultdict(lambda: state.__sentinel__, event.data)
+
+    state.location.docked = True
+    state.location.station.name = data['StationName']
+    state.location.station.type = data['StationType']
+    state.location.station.market = data['MarketID']
+    state.location.station.faction = data['StationFaction']
+    state.location.station.government = data['StationGovernment']
+    state.location.station.services = data['StationServices']
+    state.location.station.economy = data['StationEconomy']
+
+
+@mutation('Undocked')
+def undocked_event(event: Event, state: GameStateData):
+    state.location.docked = False
+    state.location.station.clear()
 
 
 @mutation('Cargo')
@@ -271,6 +246,16 @@ def material_collected_event(event: Event, state: GameStateData):
 
     material_category = state.material_storage[category]
     if name in material_category:
-        material_category[name] += count
+        material_category[name].count += count
     else:
         material_category[name] = entities.Material(name, count)
+
+
+@mutation('SupercruiseEntry')
+def supercruise_entry_event(event: Event, state: GameStateData):
+    state.location.supercruise = True
+
+
+@mutation('SupercruiseExit')
+def supercruise_entry_event(event: Event, state: GameStateData):
+    state.location.supercruise = False
