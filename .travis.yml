@@ -6,7 +6,7 @@ python: "3.7"
 cache: pip
 
 install:
-  - pip install -r requirements.txt -r requirements-dev.txt codecov
+  - pip install -r requirements.txt -r requirements-dev.txt -c constraints.txt codecov
 
 script:
   - pytest --color=auto --cov=edp --cov-report=term-missing tests/
