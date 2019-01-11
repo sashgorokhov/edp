@@ -5,6 +5,7 @@ certifi==2018.11.29
 chardet==3.0.4
 colorama==0.4.1
 coverage==4.5.2
+dataclasses==0.6
 future==0.17.1
 idna==2.8
 Inject==3.4.0
