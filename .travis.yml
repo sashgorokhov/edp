@@ -3,7 +3,8 @@ python: "3.6"
 cache: pip
 
 install:
-  - pip install -r requirements.txt -r requirements-dev.txt -c constraints.txt codecov
+  - pip install pipenv
+  - pipenv install --dev
 
 script:
   - pytest --color=auto --cov=edp --cov-report=term-missing tests/
