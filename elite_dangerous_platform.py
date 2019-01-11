@@ -2,7 +2,6 @@ import logging
 import tkinter as tk
 import inject
 
-from edp.gui import MainWindow
 from edp.plugin import PluginManager, SignalExecutorThread
 from edp.thread import ThreadManager
 from edp.journal import JournalReader, JournalLiveEventThread
@@ -59,7 +58,9 @@ plugin_manager.emit(signals.INIT_COMPLETE)
 
 with thread_manager:
     logger.info('Initializing gui')
-    root = tk.Tk()
-    window = MainWindow(root, plugin_manager)
+    from edp.gui import MainWindow
+
+    root = tk.Tk(screenName='Elite Dangerous Platform', className='Elite Dangerous Platform')
+    window = MainWindow(root)
     plugin_manager.emit(signals.WINDOW_CREATED, window=window)
     root.mainloop()

@@ -1,8 +1,9 @@
 import tkinter as tk
 
-from edp.plugin import PluginManager
 
+class MainWindow(tk.Frame):
+    def __init__(self, root: tk.Tk):
+        super(MainWindow, self).__init__(root)
 
-class MainWindow:
-    def __init__(self, root: tk.Tk, plugin_manager: PluginManager):
         self._root = root
+        self.pack()
