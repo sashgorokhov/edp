@@ -1,4 +1,5 @@
 import pathlib
+import tempfile
 
 import pytest
 
@@ -14,3 +15,9 @@ def fixtures_dir():
 @pytest.fixture(scope='session')
 def random_journal_dir():
     return FIXTURE_RANDOM_JOURNAL_DIR
+
+
+@pytest.fixture()
+def tempdir():
+    with tempfile.TemporaryDirectory() as tempdir:
+        yield pathlib.Path(tempdir)

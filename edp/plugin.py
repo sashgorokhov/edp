@@ -6,7 +6,7 @@ import inspect
 import logging
 import pathlib
 import queue
-from typing import List, Type, Iterator, Mapping, Callable, NamedTuple, Dict
+from typing import List, Type, Iterator, Callable, NamedTuple, Dict
 
 from edp.thread import IntervalRunnerThread
 from edp.utils import StoppableThread
@@ -44,8 +44,8 @@ def _get_plugin_cls(module) -> Iterator[Type[BasePlugin]]:
 
 
 def _get_cls_methods(cls: Type) -> Iterator:
-    for _, t, _, value in inspect.classify_class_attrs(cls):
-        if t == 'method':
+    for name, t, _, value in inspect.classify_class_attrs(cls):
+        if not name.startswith('__') and t == 'method':
             yield value
 
 
@@ -117,9 +117,17 @@ class PluginManager:
             self._load_module_plugin(path)
 
     def _load_file_plugin(self, path: pathlib.Path):
-        spec = importlib.util.spec_from_file_location(path.stem, path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        if not path.exists():
+            raise FileNotFoundError(str(path))
+
+        try:
+            spec = importlib.util.spec_from_file_location(path.stem, path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+        except:
+            logger.exception('Error while imporing plugin from %s', path)
+            return
+
         for cls in _get_plugin_cls(module):
             if cls not in self._plugins:
                 try:

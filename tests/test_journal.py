@@ -53,12 +53,6 @@ def append_line(path: pathlib.Path, line: str):
 
 
 @pytest.fixture()
-def tempdir():
-    with tempfile.TemporaryDirectory() as tempdir:
-        yield pathlib.Path(tempdir)
-
-
-@pytest.fixture()
 def journal_reader(tempdir):
     return journal.JournalReader(tempdir)
 
