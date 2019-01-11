@@ -4,10 +4,33 @@ import pathlib
 import tempfile
 import time
 from typing import List, Union, Dict
+from unittest import mock
 
 import pytest
 
-from edp import journal
+from edp import journal, signals
+from edp.journal import Event
+
+TEST_EVENT_1 = ('{"timestamp": "2018-06-07T08:09:10Z", "event": "test 1", "foo": "bar"}',
+                Event(datetime.datetime(2018, 6, 7, 8, 9, 10), 'test 1',
+                      {"timestamp": "2018-06-07T08:09:10Z", "event": 'test 1', 'foo': 'bar'},
+                      '{"timestamp": "2018-06-07T08:09:10Z", "event": "test 1", "foo": "bar"}'
+                      )
+                )
+
+TEST_EVENT_2 = ('{"timestamp": "2018-06-07T08:09:10Z", "event": "test 2", "foo": "bar"}',
+                Event(datetime.datetime(2018, 6, 7, 8, 9, 10), 'test 2',
+                      {"timestamp": "2018-06-07T08:09:10Z", "event": 'test 2', 'foo': 'bar'},
+                      '{"timestamp": "2018-06-07T08:09:10Z", "event": "test 2", "foo": "bar"}'
+                      )
+                )
+
+TEST_EVENT_3 = ('{"timestamp": "2018-06-07T08:09:10Z", "event": "test 3", "foo": "bar"}',
+                Event(datetime.datetime(2018, 6, 7, 8, 9, 10), 'test 3',
+                      {"timestamp": "2018-06-07T08:09:10Z", "event": 'test 3', 'foo': 'bar'},
+                      '{"timestamp": "2018-06-07T08:09:10Z", "event": "test 3", "foo": "bar"}'
+                      )
+                )
 
 
 def format_dt(dt: datetime.datetime) -> str:
@@ -24,6 +47,11 @@ def serialize_events(events: List[dict]) -> str:
     return '\n'.join(map(serialize_event, events))
 
 
+def append_line(path: pathlib.Path, line: str):
+    with path.open('a') as f:
+        f.write(line)
+
+
 @pytest.fixture()
 def tempdir():
     with tempfile.TemporaryDirectory() as tempdir:
@@ -33,6 +61,18 @@ def tempdir():
 @pytest.fixture()
 def journal_reader(tempdir):
     return journal.JournalReader(tempdir)
+
+
+@pytest.fixture()
+def mock_plugin_manager():
+    return mock.MagicMock()
+
+
+@pytest.fixture()
+def journal_live_event_thread(journal_reader, mock_plugin_manager):
+    thread = journal.JournalLiveEventThread(journal_reader, mock_plugin_manager)
+    thread.interval = 0.1
+    return thread
 
 
 def test_get_latest_file(tempdir, journal_reader):
@@ -84,6 +124,12 @@ def test_get_latest_file_events(tempdir, journal_reader):
     assert events_list[0].timestamp == dt
 
 
+def test_get_latest_file_events_no_files(tempdir, journal_reader):
+    events_list = journal_reader.get_latest_file_events()
+
+    assert len(events_list) == 0
+
+
 def test_get_latest_file_events_bad_event(tempdir, journal_reader):
     dt = datetime.datetime.now().replace(microsecond=0)
 
@@ -126,3 +172,75 @@ def test_get_latest_file_events_append(tempdir, journal_reader):
     assert len(events_list) == 2
     assert events_list[0].name == 'test 1'
     assert events_list[1].name == 'test 2'
+
+
+def test_process_event():
+    event_line = '{"timestamp": "2018-06-07T08:09:10Z", "event": "test", "foo": "bar"}'
+    event = journal.process_event(event_line)
+
+    assert event.name == 'test'
+    assert event.timestamp == datetime.datetime(2018, 6, 7, 8, 9, 10)
+
+    assert event.raw == event_line
+    assert 'foo' in event.data
+    assert event.data['foo'] == 'bar'
+
+    assert 'timestamp' in event.data
+    assert 'event' in event.data
+
+
+def test_process_event_bad_timestamp():
+    event_line = '{"timestamp": "2018-06-07T25:09", "event": "test", "foo": "bar"}'
+
+    with pytest.raises(ValueError):
+        journal.process_event(event_line)
+
+
+def test_process_event_no_timestamp():
+    event_line = '{"event": "test", "foo": "bar"}'
+
+    with pytest.raises(ValueError):
+        journal.process_event(event_line)
+
+
+def test_process_event_no_event():
+    event_line = '{"timestamp": "2018-06-07T25:09", "foo": "bar"}'
+
+    with pytest.raises(ValueError):
+        journal.process_event(event_line)
+
+
+def test_process_event_malformed_line():
+    event_line = 'what is it?'
+
+    with pytest.raises(ValueError):
+        journal.process_event(event_line)
+
+
+def test_journal_live_event_thread_no_files(journal_live_event_thread, mock_plugin_manager):
+    with journal_live_event_thread:
+        time.sleep(0.5)
+
+    mock_plugin_manager.assert_not_called()
+
+
+def test_journal_live_event_thread_file_appeared(journal_live_event_thread, mock_plugin_manager, tempdir):
+    event_line, event = TEST_EVENT_1
+
+    with journal_live_event_thread:
+        time.sleep(0.5)
+        (tempdir / 'Journal.test.log').write_text(event_line)
+        time.sleep(0.5)
+
+    mock_plugin_manager.emit.assert_called_once_with(signals.JOURNAL_EVENT, event=event)
+
+
+def test_journal_live_event_skip_existing_file_content(journal_live_event_thread, mock_plugin_manager, tempdir):
+    (tempdir / 'Journal.test.log').write_text(TEST_EVENT_1[0])
+
+    with journal_live_event_thread:
+        time.sleep(0.5)
+        append_line(tempdir / 'Journal.test.log', TEST_EVENT_2[0])
+        time.sleep(0.5)
+
+    mock_plugin_manager.emit.assert_called_once_with(signals.JOURNAL_EVENT, event=TEST_EVENT_2[1])

@@ -34,10 +34,11 @@ class JournalReader:
 
     def get_latest_file_events(self) -> List['Event']:
         latest_file = self.get_latest_file()
-        latest_file_mtime = os.path.getmtime(latest_file)
 
         if latest_file is None:
             return []
+
+        latest_file_mtime = os.path.getmtime(latest_file)
 
         if latest_file != self._latest_file or latest_file_mtime != self._latest_file_mtime:
             with self._lock:
@@ -69,6 +70,7 @@ class JournalLiveEventThread(StoppableThread):
 
     def run(self):
         current_file: pathlib.Path = None
+        last_file: pathlib.Path = self._journal_reader.get_latest_file()
         last_pos = 0
 
         while not self.is_stopped:
@@ -82,7 +84,7 @@ class JournalLiveEventThread(StoppableThread):
             if latest_file != current_file:
                 logger.debug('Changing current journal to %s', latest_file.name)
 
-                if current_file is None:  # we starting up, need to skip old entries
+                if current_file is None and last_file is not None:
                     logger.debug('Startup skipping existing journal content')
                     last_pos = get_file_end_pos(latest_file)
                 else:
@@ -91,6 +93,7 @@ class JournalLiveEventThread(StoppableThread):
                 current_file = latest_file
 
             last_pos = self.read_file(current_file, last_pos)
+            last_file = latest_file
 
             self.sleep(self.interval)
 
