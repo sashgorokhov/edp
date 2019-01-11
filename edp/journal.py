@@ -9,7 +9,7 @@ from typing import NamedTuple, Optional, List, Dict, Union, Any
 
 from edp import signals
 from edp.plugin import PluginManager
-from edp.utils import StoppableThread
+from edp.thread import StoppableThread
 
 logger = logging.getLogger(__name__)
 

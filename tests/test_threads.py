@@ -3,8 +3,7 @@ from unittest import mock
 
 import pytest
 
-from edp.thread import IntervalRunnerThread, ThreadManager
-from edp.utils import StoppableThread
+from edp.thread import IntervalRunnerThread, ThreadManager, StoppableThread
 
 
 class TestThread(StoppableThread):

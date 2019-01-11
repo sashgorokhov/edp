@@ -8,8 +8,7 @@ import pathlib
 import queue
 from typing import List, Type, Iterator, Callable, NamedTuple, Dict, TypeVar
 
-from edp.thread import IntervalRunnerThread
-from edp.utils import StoppableThread
+from edp.thread import IntervalRunnerThread, StoppableThread
 
 logger = logging.getLogger(__name__)
 
