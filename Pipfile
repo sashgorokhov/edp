@@ -6,7 +6,7 @@ verify_ssl = true
 [dev-packages]
 pytest = "*"
 pytest-cov = "*"
-pyinstaller = "*"
+pyinstaller = {version = "*", sys_platform = "== 'win32'"}
 pyqt5-tools = {version = "*", sys_platform = "== 'win32'"}
 
 [packages]
