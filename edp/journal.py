@@ -38,10 +38,10 @@ class JournalReader:
         if latest_file is None:
             return []
 
-        latest_file_mtime = os.path.getmtime(latest_file)
+        with self._lock:
+            latest_file_mtime = os.path.getmtime(latest_file)
 
-        if latest_file != self._latest_file or latest_file_mtime != self._latest_file_mtime:
-            with self._lock:
+            if latest_file != self._latest_file or latest_file_mtime != self._latest_file_mtime:
                 self._latest_file = latest_file
                 self._latest_file_mtime = latest_file_mtime
                 self._latest_file_events = []
