@@ -147,12 +147,6 @@ class PluginManager:
         self._register_callbacks(plugin)
         self._register_scheduled_funcs(plugin)
 
-    def __getitem__(self, item: Type[T]) -> T:
-        if isinstance(item, type) and issubclass(item, BasePlugin):
-            return self._plugins[item]
-        else:
-            raise TypeError(f'Can accept only plugin class')
-
     def _is_module_plugin(self, path: pathlib.Path):
         raise NotImplementedError
 
@@ -195,3 +189,12 @@ class PluginManager:
         callbacks = self._callbacks.get(name, [])
         if callbacks:
             self._signal_queue.put_nowait(SignalItem(name, callbacks, kwargs))
+
+    def get_plugin(self, plugin_cls: Type[T]) -> T:
+        if isinstance(plugin_cls, type) and issubclass(plugin_cls, BasePlugin):
+            return self._plugins[plugin_cls]
+        else:
+            raise TypeError(f'Can accept only plugin class')
+
+    def __getitem__(self, item: Type[T]) -> T:
+        return self.get_plugin(item)
