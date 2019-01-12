@@ -169,9 +169,12 @@ class PluginManager:
             signal_names = getattr(method, '__is_callback__')
             bound_method = _bind_method(method, plugin)
             bound_method = self._decorate_bound_method_callback(plugin, bound_method)
-            for signal_name in signal_names:
-                self._callbacks[signal_name].append(bound_method)
-                logger.debug('Registered callback "%s" of %s: %s', signal_name, plugin, bound_method)
+            self.register_callback_func(bound_method, *signal_names)
+
+    def register_callback_func(self, func: Callable, *signal_names: str):
+        for signal_name in signal_names:
+            self._callbacks[signal_name].append(func)
+            logger.debug('Registered callback "%s": %s', signal_name, func)
 
     def _register_scheduled_funcs(self, plugin: BasePlugin):
         for method in _get_cls_methods(plugin.__class__):
