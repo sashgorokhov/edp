@@ -55,7 +55,7 @@ with thread_manager:
     logger.info('Initializing gui')
 
     try:
-        from edp.gui import MainWindow
+        from edp.gui.components.main_window import MainWindow
         from PyQt5.QtWidgets import QApplication
 
         app = QApplication([])
