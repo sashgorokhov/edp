@@ -1,0 +1,6 @@
+-r requirements-base.txt
+-r requirements-test.txt
+
+PyQt5
+pyqt5-tools
+pyinstaller
