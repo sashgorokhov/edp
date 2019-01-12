@@ -3,7 +3,7 @@ python: "3.6"
 cache: pip
 
 install:
-  - pip install -r requirements.txt -c constraints.txt
+  - pip install -r requirements.txt
 
 script:
   - pytest --color=auto --cov=edp --cov-report=term-missing tests/
