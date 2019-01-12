@@ -5,7 +5,7 @@ import logging
 import os
 import pathlib
 import threading
-from typing import NamedTuple, Optional, List, Dict, Union, Any
+from typing import NamedTuple, Optional, List, Dict, Union, Any, Iterator
 
 from edp import signals
 from edp.plugin import PluginManager
@@ -32,6 +32,20 @@ class JournalReader:
         files_list = sorted(self._base_dir.glob('Journal.*.log'), key=lambda path: os.path.getmtime(path))
         return files_list[-1] if len(files_list) else None
 
+    @staticmethod
+    def read_all_file_events(path: pathlib.Path) -> Iterator['Event']:
+        try:
+            # noinspection PyTypeChecker
+            with open(path, 'r', encoding='utf-8') as f:
+                for line in f.readlines():
+                    try:
+                        yield process_event(line)
+                    except:
+                        logger.exception('Failed to process event: %s', line)
+                        continue
+        except:
+            logger.exception('Failed to read events from file %s', path)
+
     def get_latest_file_events(self) -> List['Event']:
         latest_file = self.get_latest_file()
 
@@ -44,17 +58,7 @@ class JournalReader:
             if latest_file != self._latest_file or latest_file_mtime != self._latest_file_mtime:
                 self._latest_file = latest_file
                 self._latest_file_mtime = latest_file_mtime
-                self._latest_file_events = []
-
-                with open(self._latest_file, 'r') as f:
-                    for line in f.readlines():
-                        try:
-                            event = process_event(line)
-                        except:
-                            logger.exception('Failed to process event: %s', line)
-                            continue
-
-                        self._latest_file_events.append(event)
+                self._latest_file_events = list(self.read_all_file_events(self._latest_file))
 
         return self._latest_file_events
 
@@ -100,7 +104,8 @@ class JournalLiveEventThread(StoppableThread):
     def read_file(self, filename: pathlib.Path, pos: int = 0) -> int:
         num_events = 0
 
-        with open(filename, 'r') as f:
+        # noinspection PyTypeChecker
+        with open(filename, 'r', encoding='utf-8') as f:
             f.seek(pos, os.SEEK_SET)
 
             for num_events, line in enumerate(f.readlines()):
