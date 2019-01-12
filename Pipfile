@@ -7,7 +7,7 @@ verify_ssl = true
 pytest = "*"
 pytest-cov = "*"
 pyinstaller = "*"
-pyqt5-tools = "*"
+pyqt5-tools = {version = "*", sys_platform = "== 'win32'"}
 
 [packages]
 requests = "*"
@@ -17,3 +17,6 @@ PyQt5 = "*"
 
 [requires]
 python_version = "3.6"
+
+[scripts]
+pyuic = "venv/Scripts/python.exe scripts/pyuic.py"

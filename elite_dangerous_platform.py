@@ -54,18 +54,16 @@ plugin_manager.emit(signals.INIT_COMPLETE)
 with thread_manager:
     logger.info('Initializing gui')
 
-    import PyQt5
-    from PyQt5.QtWidgets import QApplication
+    try:
+        from edp.gui import MainWindow
+        from PyQt5.QtWidgets import QApplication
 
-    pyqt = os.path.dirname(PyQt5.__file__)
-    QApplication.addLibraryPath(os.path.join(pyqt, "qt", "plugins"))
+        app = QApplication([])
 
-    app = QApplication([])
+        window = MainWindow()
+        plugin_manager.emit(signals.WINDOW_CREATED, window=window)
 
-    from edp.gui import MainWindow
-
-    window = MainWindow()
-    plugin_manager.emit(signals.WINDOW_CREATED, window=window)
-
-    window.show()
-    app.exec_()
+        window.show()
+        app.exec_()
+    except ImportError:
+        logger.exception('Failed to initialize gui, exiting')

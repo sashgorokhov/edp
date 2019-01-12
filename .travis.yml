@@ -4,7 +4,7 @@ cache: pip
 
 install:
   - pip install pipenv
-  - pipenv install --dev
+  - pipenv sync --dev
 
 script:
   - pytest --color=auto --cov=edp --cov-report=term-missing tests/
