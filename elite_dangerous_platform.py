@@ -1,31 +1,27 @@
 import logging
-import tkinter as tk
+import os
+
 import inject
 
-from edp.plugin import PluginManager, SignalExecutorThread
-from edp.thread import ThreadManager
-from edp.journal import JournalReader, JournalLiveEventThread
 from edp import signals
-from edp.settings import Settings
 from edp.contrib import edsm, gamestate, _debug
-
+from edp.journal import JournalReader, JournalLiveEventThread
+from edp.plugin import PluginManager, SignalExecutorThread
+from edp.settings import Settings
+from edp.thread import ThreadManager
 
 logging.basicConfig(level=logging.DEBUG)
 
 logger = logging.getLogger('edp')
 
-
 logger.info('Initializing settings')
 settings = Settings()
-
 
 logger.info('Initializing plugins')
 plugin_manager = PluginManager(settings.plugin_dir)
 
-
 logger.info('Initializing thread manager')
 thread_manager = ThreadManager()
-
 
 logger.info('Initializing flightlog journal handler')
 journal_reader = JournalReader(settings.journal_dir)
@@ -47,7 +43,6 @@ plugin_manager.register_plugin_cls(_debug._DebugPlugin)
 
 plugin_manager.load_plugins()
 
-
 thread_manager.add_threads(
     JournalLiveEventThread(journal_reader, plugin_manager),
     SignalExecutorThread(plugin_manager._signal_queue),
@@ -58,9 +53,19 @@ plugin_manager.emit(signals.INIT_COMPLETE)
 
 with thread_manager:
     logger.info('Initializing gui')
+
+    import PyQt5
+    from PyQt5.QtWidgets import QApplication
+
+    pyqt = os.path.dirname(PyQt5.__file__)
+    QApplication.addLibraryPath(os.path.join(pyqt, "qt", "plugins"))
+
+    app = QApplication([])
+
     from edp.gui import MainWindow
 
-    root = tk.Tk(screenName='Elite Dangerous Platform', className='Elite Dangerous Platform')
-    window = MainWindow(root)
+    window = MainWindow()
     plugin_manager.emit(signals.WINDOW_CREATED, window=window)
-    root.mainloop()
+
+    window.show()
+    app.exec_()

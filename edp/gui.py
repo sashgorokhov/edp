@@ -1,9 +1,5 @@
-import tkinter as tk
+from PyQt5.QtWidgets import QWidget
 
 
-class MainWindow(tk.Frame):
-    def __init__(self, root: tk.Tk):
-        super(MainWindow, self).__init__(root)
-
-        self._root = root
-        self.pack()
+class MainWindow(QWidget):
+    pass
