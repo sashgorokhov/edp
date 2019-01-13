@@ -7,7 +7,7 @@ from typing import List
 import inject
 import requests
 
-from edp import signals
+from edp import signals, plugins
 from edp.contrib.gamestate import GameState, GameStateData
 from edp.journal import Event, journal_event_signal
 from edp.plugins import BasePlugin, PluginProxy
@@ -81,7 +81,7 @@ class EDSMPlugin(BasePlugin):
         with self._event_buffer_lock:
             self._event_buffer.append(event)
 
-    # TODO: Scheduled
+    @plugins.scheduled(60)
     def push_events(self):
         if not self._event_buffer:
             return

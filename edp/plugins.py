@@ -1,10 +1,50 @@
 import importlib.util
+import inspect
 import logging
 from pathlib import Path
-from types import ModuleType
-from typing import Iterator, Type, List, TypeVar, Dict, Optional
+from types import ModuleType, MethodType, FunctionType
+from typing import Iterator, Type, List, TypeVar, Dict, Optional, NamedTuple, Tuple
+
+from edp.thread import IntervalRunnerThread
 
 logger = logging.getLogger(__name__)
+
+
+class MARKS:
+    SCHEDULED = 'scheduled'
+
+
+class FunctionMark(NamedTuple):
+    name: str
+    options: dict
+
+
+def mark_function(name: str, **options):
+    def decor(func):
+        if not hasattr(func, '__edp_plugin_mark__'):
+            func.__edp_plugin_mark__ = []
+        func.__edp_plugin_mark__.append(FunctionMark(name, options))
+        return func
+
+    return decor
+
+
+def get_marked_methods(mark: str, obj) -> Iterator[Tuple[MethodType, FunctionMark]]:
+    for name, t, _, _ in inspect.classify_class_attrs(type(obj)):
+        if not name.startswith('__') and t == 'method':
+            method: MethodType = getattr(obj, name)
+            marks = get_function_marks(method)
+            for func_mark in marks:
+                if func_mark.name == mark:
+                    yield method, func_mark
+
+
+def get_function_marks(func: FunctionType) -> List[FunctionMark]:
+    return getattr(func, '__edp_plugin_mark__', [])
+
+
+def scheduled(interval=1):
+    return mark_function(MARKS.SCHEDULED, interval=interval)
 
 
 class BasePlugin:
@@ -83,10 +123,18 @@ class PluginManager:
     # internal during app lifetime, passed as init param
     def __init__(self, plugins: List[BasePlugin]):
         self._plugins = plugins
-        self._plugin_cls_map: Dict[Type[BasePlugin], BasePlugin] = {p.__class__: p for p in plugins}
+        self._plugin_cls_map: Dict[Type[BasePlugin], BasePlugin] = {type(p): p for p in plugins}
 
     def get_plugin(self, plugin_cls: Type[T]) -> Optional[T]:
         return self._plugin_cls_map.get(plugin_cls, None)
+
+    def get_marked_methods(self, name: str) -> Iterator[Tuple[MethodType, FunctionMark]]:
+        for plugin in self._plugins:
+            yield from get_marked_methods(name, plugin)
+
+    def get_scheduled_methods_threads(self) -> Iterator[IntervalRunnerThread]:
+        for method, mark in self.get_marked_methods(MARKS.SCHEDULED):
+            yield IntervalRunnerThread(method, interval=mark.options.get('interval', 1))
 
 
 class PluginProxy:
@@ -117,6 +165,7 @@ class PluginLoader:
 
     def load_plugins(self):
         for plugin_cls in get_plugins_cls_from_dir(self._plugin_dir):
+            logger.debug(f'Loaded plugin {plugin_cls} from {plugin_cls.__module__}')
             try:
                 self.add_plugin(plugin_cls)
             except:

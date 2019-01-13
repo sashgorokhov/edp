@@ -44,6 +44,7 @@ inject.clear_and_configure(injection_config)
 thread_manager.add_threads(
     journal.JournalLiveEventThread(journal_reader),
     signalslib.signal_manager.get_signal_executor_thread(),
+    *plugin_manager.get_scheduled_methods_threads()
 )
 
 with thread_manager:
