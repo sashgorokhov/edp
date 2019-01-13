@@ -1,14 +1,11 @@
 import logging
-import os
+import time
 
 import inject
 
-from edp import signals
-from edp.contrib import edsm, gamestate, _debug
-from edp.journal import JournalReader, JournalLiveEventThread
-from edp.plugin import PluginManager, SignalExecutorThread
+from edp import signalslib, plugins, thread, signals, journal
+from edp.contrib import edsm, gamestate
 from edp.settings import Settings
-from edp.thread import ThreadManager
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -17,53 +14,51 @@ logger = logging.getLogger('edp')
 logger.info('Initializing settings')
 settings = Settings()
 
-logger.info('Initializing plugins')
-plugin_manager = PluginManager(settings.plugin_dir)
-
 logger.info('Initializing thread manager')
-thread_manager = ThreadManager()
+thread_manager = thread.ThreadManager()
 
 logger.info('Initializing flightlog journal handler')
-journal_reader = JournalReader(settings.journal_dir)
+journal_reader = journal.JournalReader(settings.journal_dir)
+
+logger.info('Loading plugins')
+plugin_loader = plugins.PluginLoader(settings.plugin_dir)
+
+plugin_loader.add_plugin(edsm.EDSMPlugin)
+plugin_loader.add_plugin(gamestate.GameState)
+plugin_loader.load_plugins()
+
+plugin_manager = plugins.PluginManager(plugin_loader.get_plugins())
+plugin_proxy = plugins.PluginProxy(plugin_manager)
 
 
 def injection_config(binder: inject.Binder):
     binder.bind(Settings, settings)
-    binder.bind(PluginManager, plugin_manager)
-    binder.bind(ThreadManager, thread_manager)
-    binder.bind(JournalReader, journal_reader)
+    binder.bind(plugins.PluginProxy, plugin_proxy)
+    binder.bind(thread.ThreadManager, thread_manager)
+    binder.bind(journal.JournalReader, journal_reader)
 
 
+logger.debug('Injection complete')
 inject.clear_and_configure(injection_config)
 
-logger.info('Loading plugins')
-plugin_manager.register_plugin_cls(edsm.EDSMPlugin)
-plugin_manager.register_plugin_cls(gamestate.GameState)
-plugin_manager.register_plugin_cls(_debug._DebugPlugin)
-
-plugin_manager.load_plugins()
-
 thread_manager.add_threads(
-    JournalLiveEventThread(journal_reader, plugin_manager),
-    SignalExecutorThread(plugin_manager._signal_queue),
-    *plugin_manager._scheduler_threads,
+    journal.JournalLiveEventThread(journal_reader),
+    signalslib.signal_manager.get_signal_executor_thread(),
 )
 
-plugin_manager.emit(signals.INIT_COMPLETE)
-
 with thread_manager:
+    time.sleep(0.1)  # do we need this? for threads warmup
+    signals.init_complete.emit()
+
     logger.info('Initializing gui')
 
-    try:
-        from edp.gui.components.main_window import MainWindow
-        from PyQt5.QtWidgets import QApplication
+    from edp.gui.components.main_window import MainWindow, main_window_created_signal
+    from PyQt5.QtWidgets import QApplication
 
-        app = QApplication([])
+    app = QApplication([])
 
-        window = MainWindow()
-        plugin_manager.emit(signals.WINDOW_CREATED, window=window)
+    window = MainWindow(plugin_manager)
+    main_window_created_signal.emit(window=window)
+    window.show()
 
-        window.show()
-        app.exec_()
-    except ImportError:
-        logger.exception('Failed to initialize gui, exiting')
+    app.exec_()

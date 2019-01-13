@@ -1,3 +1,4 @@
 requests
 inject
 dataclasses
+PyQt5

@@ -8,7 +8,7 @@ from unittest import mock
 
 import pytest
 
-from edp import journal, signals
+from edp import journal, signalslib
 from edp.journal import Event
 
 TEST_EVENT_1 = ('{"timestamp": "2018-06-07T08:09:10Z", "event": "test 1", "foo": "bar"}',
@@ -58,15 +58,16 @@ def journal_reader(tempdir):
 
 
 @pytest.fixture()
-def mock_plugin_manager():
-    return mock.MagicMock()
+def journal_live_event_thread(journal_reader):
+    thread = journal.JournalLiveEventThread(journal_reader)
+    thread.interval = 0.1
+    return thread
 
 
 @pytest.fixture()
-def journal_live_event_thread(journal_reader, mock_plugin_manager):
-    thread = journal.JournalLiveEventThread(journal_reader, mock_plugin_manager)
-    thread.interval = 0.1
-    return thread
+def journal_event_signal_mock():
+    with mock.patch('edp.journal.journal_event_signal') as m:
+        yield m
 
 
 def test_get_latest_file(tempdir, journal_reader):
@@ -211,14 +212,14 @@ def test_process_event_malformed_line():
         journal.process_event(event_line)
 
 
-def test_journal_live_event_thread_no_files(journal_live_event_thread, mock_plugin_manager):
+def test_journal_live_event_thread_no_files(journal_live_event_thread, journal_event_signal_mock):
     with journal_live_event_thread:
         time.sleep(0.5)
 
-    mock_plugin_manager.assert_not_called()
+    journal_event_signal_mock.assert_not_called()
 
 
-def test_journal_live_event_thread_file_appeared(journal_live_event_thread, mock_plugin_manager, tempdir):
+def test_journal_live_event_thread_file_appeared(journal_live_event_thread, tempdir, journal_event_signal_mock):
     event_line, event = TEST_EVENT_1
 
     with journal_live_event_thread:
@@ -226,10 +227,10 @@ def test_journal_live_event_thread_file_appeared(journal_live_event_thread, mock
         (tempdir / 'Journal.test.log').write_text(event_line)
         time.sleep(0.5)
 
-    mock_plugin_manager.emit.assert_called_once_with(signals.JOURNAL_EVENT, event=event)
+    journal_event_signal_mock.emit.assert_called_once_with(event=event)
 
 
-def test_journal_live_event_skip_existing_file_content(journal_live_event_thread, mock_plugin_manager, tempdir):
+def test_journal_live_event_skip_existing_file_content(journal_live_event_thread, tempdir, journal_event_signal_mock):
     (tempdir / 'Journal.test.log').write_text(TEST_EVENT_1[0])
 
     with journal_live_event_thread:
@@ -237,4 +238,4 @@ def test_journal_live_event_skip_existing_file_content(journal_live_event_thread
         append_line(tempdir / 'Journal.test.log', TEST_EVENT_2[0])
         time.sleep(0.5)
 
-    mock_plugin_manager.emit.assert_called_once_with(signals.JOURNAL_EVENT, event=TEST_EVENT_2[1])
+    journal_event_signal_mock.emit.assert_called_once_with(event=TEST_EVENT_2[1])

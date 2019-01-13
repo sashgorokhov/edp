@@ -1,4 +1,3 @@
-import collections
 import datetime
 import json
 import logging
@@ -7,17 +6,42 @@ import pathlib
 import threading
 from typing import NamedTuple, Optional, List, Dict, Union, Any, Iterator
 
-from edp import signals
-from edp.plugin import PluginManager
+from edp.signalslib import Signal
 from edp.thread import StoppableThread
 
 logger = logging.getLogger(__name__)
+
+
+class Event(NamedTuple):
+    timestamp: datetime.datetime
+    name: str
+    data: Dict[str, Union[None, Any]]  # TODO: Make immutable
+    raw: str
+
+
+journal_event_signal = Signal('journal event', event=Event)
 
 
 def get_file_end_pos(filename) -> int:
     with open(filename, 'r') as f:
         f.seek(0, os.SEEK_END)
         return f.tell()
+
+
+def process_event(event_line: str) -> Event:
+    event = json.loads(event_line)
+
+    if 'timestamp' not in event:
+        raise ValueError('Invalid event dict: missing timestamp field')
+    if 'event' not in event:
+        raise ValueError('Invalid event dict: missing event field')
+
+    timestamp_str = event['timestamp'].rstrip('Z')
+    timestamp = datetime.datetime.strptime(timestamp_str, '%Y-%m-%dT%H:%M:%S')
+
+    name: str = event['event']
+
+    return Event(timestamp, name, event, event_line)
 
 
 class JournalReader:
@@ -66,11 +90,10 @@ class JournalReader:
 class JournalLiveEventThread(StoppableThread):
     interval = 1
 
-    def __init__(self, journal_reader: JournalReader, plugin_manager: PluginManager):
+    def __init__(self, journal_reader: JournalReader):
         super(JournalLiveEventThread, self).__init__()
 
         self._journal_reader = journal_reader
-        self._plugin_manager = plugin_manager
 
     def run(self):
         current_file: pathlib.Path = None
@@ -122,27 +145,4 @@ class JournalLiveEventThread(StoppableThread):
             logger.exception('Failed to process event: %s', line)
             return
 
-        self._plugin_manager.emit(signals.JOURNAL_EVENT, event=processed_event)
-
-
-class Event(NamedTuple):
-    timestamp: datetime.datetime
-    name: str
-    data: Dict[str, Union[None, Any]]  # TODO: Make immutable
-    raw: str
-
-
-def process_event(event_line: str) -> Event:
-    event = json.loads(event_line)
-
-    if 'timestamp' not in event:
-        raise ValueError('Invalid event dict: missing timestamp field')
-    if 'event' not in event:
-        raise ValueError('Invalid event dict: missing event field')
-
-    timestamp_str = event['timestamp'].rstrip('Z')
-    timestamp = datetime.datetime.strptime(timestamp_str, '%Y-%m-%dT%H:%M:%S')
-
-    name: str = event['event']
-
-    return Event(timestamp, name, event, event_line)
+        journal_event_signal.emit(event=processed_event)

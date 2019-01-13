@@ -5,16 +5,12 @@ from typing import List, Dict, Callable
 import dataclasses
 import inject
 
-from edp import signals, entities
-from edp.journal import JournalReader, Event
-from edp.plugin import BasePlugin, callback, PluginManager
+from edp import entities, signals
+from edp.journal import JournalReader, Event, journal_event_signal
+from edp.plugins import BasePlugin
+from edp.signalslib import Signal
 
 logger = logging.getLogger(__name__)
-
-
-class SIGNALS:
-    GAME_STATE_CHANGED = 'game state changed'
-    GAME_STATE_SET = 'game state set'
 
 
 @dataclasses.dataclass
@@ -33,6 +29,9 @@ class GameStateData(entities._BaseEntity):
         return self
 
 
+game_state_changed_signal = Signal('game state changed', state=GameStateData)
+game_state_set_signal = Signal('game state set', state=GameStateData)
+
 _GAME_STATE_MUTATIONS: Dict[str, Callable[[Event, GameStateData], None]] = {}
 
 
@@ -49,23 +48,23 @@ def mutation(*events: str):
 
 class GameState(BasePlugin):
     journal_reader: JournalReader = inject.attr(JournalReader)
-    plugin_manager: PluginManager = inject.attr(PluginManager)
 
     def __init__(self):
         self._state = GameStateData()
         self._state_lock = threading.Lock()
 
+        journal_event_signal.bind(self.on_journal_event)
+        signals.init_complete.bind(self.set_initial_state)
+
     @property
     def state(self) -> GameStateData:
         return self._state.frozen()
 
-    @callback(signals.JOURNAL_EVENT)
     def on_journal_event(self, event: Event):
         changed = self.update_state(event)
         if changed:
-            self.plugin_manager.emit(SIGNALS.GAME_STATE_CHANGED, state=self.state)
+            game_state_changed_signal.emit(state=self.state)
 
-    @callback(signals.INIT_COMPLETE)
     def set_initial_state(self):
         # noinspection PyUnresolvedReferences
         from edp.contrib import gamestate_mutations  # noqa
@@ -75,7 +74,7 @@ class GameState(BasePlugin):
         for event in events:
             self.update_state(event)
 
-        self.plugin_manager.emit(SIGNALS.GAME_STATE_SET, state=self.state)
+        game_state_set_signal.emit(state=self.state)
         logger.debug('Initial state: %s', self._state)
 
     def update_state(self, event: Event) -> bool:

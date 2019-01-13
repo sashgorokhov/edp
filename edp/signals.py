@@ -1,4 +1,3 @@
-# Define builtin signals
-WINDOW_CREATED = 'window created'
-JOURNAL_EVENT = 'journal event'
-INIT_COMPLETE = 'init complete'
+from edp.signalslib import Signal
+
+init_complete = Signal('init complete')

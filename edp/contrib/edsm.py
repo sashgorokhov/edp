@@ -9,8 +9,8 @@ import requests
 
 from edp import signals
 from edp.contrib.gamestate import GameState, GameStateData
-from edp.journal import Event
-from edp.plugin import BasePlugin, callback, scheduled, PluginManager
+from edp.journal import Event, journal_event_signal
+from edp.plugins import BasePlugin, PluginProxy
 from edp.settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -53,31 +53,35 @@ class EDSMPlugin(BasePlugin):
         super(EDSMPlugin, self).__init__(*args, **kwargs)
         self._event_buffer: List[Event] = []
         self._event_buffer_lock = threading.Lock()
-        self.api = EDSMApi.from_settings(self.settings)
         self._gamestate: GameState = None
 
-    @callback(signals.INIT_COMPLETE)
+        signals.init_complete.bind(self.on_init_complete)
+        journal_event_signal.bind(self.journal_event)
+
     def on_init_complete(self):
-        plugin_manager = inject.instance(PluginManager)
-        self._gamestate: GameState = plugin_manager[GameState]
+        plugin_proxy: PluginProxy = inject.instance(PluginProxy)
+        self._gamestate: GameState = plugin_proxy.get_plugin(GameState)
+
+    def is_enabled(self) -> bool:
+        return bool(self.settings.edsm_api_key and self.settings.edsm_commander_name)
 
     @property
-    def enabled(self) -> bool:
-        return bool(self.settings.edsm_api_key and self.settings.edsm_commander_name)
+    @functools.lru_cache()
+    def api(self):
+        return EDSMApi.from_settings(self.settings)
 
     @property
     @functools.lru_cache()
     def discarded_events(self) -> List[str]:
         return self.api.discarded_events()
 
-    @callback(signals.JOURNAL_EVENT)
     def journal_event(self, event: Event):
         if event.name in self.discarded_events:
             return
         with self._event_buffer_lock:
             self._event_buffer.append(event)
 
-    @scheduled(60)
+    # TODO: Scheduled
     def push_events(self):
         if not self._event_buffer:
             return
