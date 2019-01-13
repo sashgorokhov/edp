@@ -33,7 +33,7 @@ class Signal:
         self.signature: Dict[str, Type] = signature
         self.callbacks: List[FunctionType] = []
 
-    def bin_nonstrict(self, func: FunctionType):
+    def bind_nonstrict(self, func: FunctionType):
         self.callbacks.append(func)
         return func
 

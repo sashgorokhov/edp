@@ -53,7 +53,7 @@ with thread_manager:
 
     logger.info('Initializing gui')
 
-    from edp.gui.components.main_window import MainWindow, main_window_created_signal
+    from edp.gui.forms.main_window import MainWindow, main_window_created_signal
     from PyQt5.QtWidgets import QApplication
 
     app = QApplication([])
