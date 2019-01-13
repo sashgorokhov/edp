@@ -1,8 +1,7 @@
-import dataclasses
 from operator import attrgetter, methodcaller
 from typing import Dict, Optional, Tuple, List
 
-UNKNOWN = 'unknown'
+import dataclasses
 
 
 class _BaseEntity:
