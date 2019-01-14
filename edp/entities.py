@@ -47,8 +47,8 @@ class _BaseEntity:
 
 @dataclasses.dataclass()
 class Commander(_BaseEntity):
-    name: str = None
-    frontier_id: str = None
+    name: Optional[str] = None
+    frontier_id: Optional[str] = None
 
 
 @dataclasses.dataclass
@@ -78,38 +78,38 @@ class MaterialStorage(_BaseEntity):
 
 @dataclasses.dataclass
 class Ship(_BaseEntity):
-    model: str = None
-    id: int = None
-    name: str = None
-    ident: str = None
+    model: Optional[str] = None
+    id: Optional[int] = None
+    name: Optional[str] = None
+    ident: Optional[str] = None
 
 
 @dataclasses.dataclass
 class Rank(_BaseEntity):
-    combat: int = None
-    combat_progress: int = None
+    combat: Optional[int] = None
+    combat_progress: Optional[int] = None
 
-    trade: int = None
-    trade_progress: int = None
+    trade: Optional[int] = None
+    trade_progress: Optional[int] = None
 
-    explore: int = None
-    explore_progress: int = None
+    explore: Optional[int] = None
+    explore_progress: Optional[int] = None
 
-    empire: int = None
-    empire_progress: int = None
+    empire: Optional[int] = None
+    empire_progress: Optional[int] = None
 
-    federation: int = None
-    federation_progress: int = None
+    federation: Optional[int] = None
+    federation_progress: Optional[int] = None
 
-    cqc: int = None
-    cqc_progress: int = None
+    cqc: Optional[int] = None
+    cqc_progress: Optional[int] = None
 
 
 @dataclasses.dataclass
 class Reputation(_BaseEntity):
-    empire: float = None
-    federation: float = None
-    alliance: float = None
+    empire: Optional[float] = None
+    federation: Optional[float] = None
+    alliance: Optional[float] = None
 
 
 @dataclasses.dataclass
@@ -123,27 +123,27 @@ class Engineer(_BaseEntity):
 
 @dataclasses.dataclass
 class Station(_BaseEntity):
-    market: int = None
-    name: str = None
-    type: str = None
-    faction: str = None
-    government: str = None
+    market: Optional[int] = None
+    name: Optional[str] = None
+    type: Optional[str] = None
+    faction: Optional[str] = None
+    government: Optional[str] = None
     services: List[str] = dataclasses.field(default_factory=list)
-    economy: str = None
+    economy: Optional[str] = None
 
 
 @dataclasses.dataclass
 class Location(_BaseEntity):
     docked: bool = False
     supercruise: bool = False
-    system: str = None
-    address: int = None
-    pos: Tuple[float, float, float] = None
-    allegiance: str = None
-    economy: str = None
-    economy_second: str = None
-    government: str = None
-    security: str = None
-    population: int = None
-    faction: str = None
+    system: Optional[str] = None
+    address: Optional[int] = None
+    pos: Optional[Tuple[float, float, float]] = None
+    allegiance: Optional[str] = None
+    economy: Optional[str] = None
+    economy_second: Optional[str] = None
+    government: Optional[str] = None
+    security: Optional[str] = None
+    population: Optional[int] = None
+    faction: Optional[str] = None
     station: Station = dataclasses.field(default_factory=Station)
