@@ -4,7 +4,7 @@ import logging
 import os
 import threading
 from pathlib import Path
-from typing import NamedTuple, Optional, List, Dict, Union, Any, Iterator
+from typing import NamedTuple, Optional, List, Dict, Any, Iterator
 
 from edp.signalslib import Signal
 from edp.thread import StoppableThread
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class Event(NamedTuple):
     timestamp: datetime.datetime
     name: str
-    data: Dict[str, Union[None, Any]]  # TODO: Make immutable
+    data: Dict[str, Optional[Any]]  # TODO: Make immutable
     raw: str
 
 

@@ -1,6 +1,5 @@
 # https://www.edsm.net/en/api-journal-v1#collapse-events
 import collections
-from typing import Dict
 
 from edp import entities
 from edp.contrib.gamestate import mutation, GameStateData
@@ -18,12 +17,12 @@ def commander_event(event: Event, state: GameStateData):
 @mutation('Materials')
 def materials_event(event: Event, state: GameStateData):
     get_materials = lambda t: {m['Name']: entities.Material(m['Name'], m['Count'])
-                               for m in event.data.get(t, [])
+                               for m in event.data.get(t, [])  # type: ignore
                                if 'Name' in m and 'Count' in m}
 
-    state.material_storage.raw: Dict[str, entities.Material] = get_materials('Raw')
-    state.material_storage.encoded: Dict[str, entities.Material] = get_materials('Encoded')
-    state.material_storage.manufactured: Dict[str, entities.Material] = get_materials('Manufactured')
+    state.material_storage.raw = get_materials('Raw')
+    state.material_storage.encoded = get_materials('Encoded')
+    state.material_storage.manufactured = get_materials('Manufactured')
 
 
 @mutation('LoadGame')
@@ -84,7 +83,8 @@ def engineer_progress_event(event: Event, state: GameStateData):
         rank_progress=e.get('RankProgress', None)
     )
 
-    state.engineers = {e['EngineerID']: create_engineer(e) for e in event.data.get('Engineers', [])
+    state.engineers = {e['EngineerID']: create_engineer(e)
+                       for e in event.data.get('Engineers', [])  # type: ignore
                        if 'EngineerID' in e and 'Engineer' in e and 'Progress' in e}
 
 
@@ -160,7 +160,7 @@ def material_collected_event(event: Event, state: GameStateData):
     material_category = state.material_storage[category]
     if name in material_category:
         material_category[name].count += count
-    else:
+    elif name and count is not None:
         material_category[name] = entities.Material(name, count)
 
 
