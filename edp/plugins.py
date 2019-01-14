@@ -2,8 +2,8 @@ import importlib.util
 import inspect
 import logging
 from pathlib import Path
-from types import ModuleType, MethodType, FunctionType
-from typing import Iterator, Type, List, TypeVar, Dict, Optional, NamedTuple, Tuple
+from types import ModuleType, FunctionType
+from typing import Iterator, Type, List, TypeVar, Dict, Optional, NamedTuple, Tuple, Any
 
 from edp.thread import IntervalRunnerThread
 
@@ -29,10 +29,10 @@ def mark_function(name: str, **options):
     return decor
 
 
-def get_marked_methods(mark: str, obj) -> Iterator[Tuple[MethodType, FunctionMark]]:
+def get_marked_methods(mark: str, obj) -> Iterator[Tuple[FunctionType, FunctionMark]]:
     for name, t, _, _ in inspect.classify_class_attrs(type(obj)):
         if not name.startswith('__') and t == 'method':
-            method: MethodType = getattr(obj, name)
+            method: FunctionType = getattr(obj, name)
             marks = get_function_marks(method)
             for func_mark in marks:
                 if func_mark.name == mark:
@@ -48,19 +48,21 @@ def scheduled(interval=1):
 
 
 class BasePlugin:
-    name: str = None
-    friendly_name: str = None
-    github_link: str = None
+    name: Optional[str] = None
+    friendly_name: Optional[str] = None
+    github_link: Optional[str] = None
 
     def is_enabled(self) -> bool:
         return True
 
 
 def get_module_from_path(path: Path) -> ModuleType:
-    spec = importlib.util.spec_from_file_location(path.stem, path)
+    spec = importlib.util.spec_from_file_location(path.stem, str(path))
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-
+    if spec.loader:
+        spec.loader.exec_module(module)
+    else:
+        raise TypeError('Cant execute module')
     return module
 
 
@@ -116,7 +118,7 @@ def get_plugins_cls_from_package(path: Path) -> Iterator[Type[BasePlugin]]:
     pass
 
 
-T = TypeVar('T')
+T = TypeVar('T', BasePlugin, Any)
 
 
 class PluginManager:
@@ -128,7 +130,7 @@ class PluginManager:
     def get_plugin(self, plugin_cls: Type[T]) -> Optional[T]:
         return self._plugin_cls_map.get(plugin_cls, None)
 
-    def get_marked_methods(self, name: str) -> Iterator[Tuple[MethodType, FunctionMark]]:
+    def get_marked_methods(self, name: str) -> Iterator[Tuple[FunctionType, FunctionMark]]:
         for plugin in self._plugins:
             yield from get_marked_methods(name, plugin)
 
