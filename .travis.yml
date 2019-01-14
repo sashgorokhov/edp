@@ -14,7 +14,7 @@ jobs:
     - stage: lint
       script: mypy edp/
     - stage: lint
-        script: pylint edp/
+      script: pylint edp/
 
 
 after_success:
