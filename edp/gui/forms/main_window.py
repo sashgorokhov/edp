@@ -24,8 +24,11 @@ class SECTIONS:
 class MainWindowSectionsView:
     def __init__(self, window: 'MainWindow'):
         self.window = window
+        self.layout: QtWidgets.QVBoxLayout = self.window.centralwidget.layout()
         self._section_components: Dict[str, List[BaseMainWindowSection]] = collections.defaultdict(list)
         self._section_separators: Dict[str, QtWidgets.QAction] = {}
+
+        self.layout.addStretch(1)
 
         for section in SECTIONS.order:
             self._section_separators[section] = self.window.menuView.addSeparator()
@@ -34,7 +37,12 @@ class MainWindowSectionsView:
         if component_cls.name is None:
             logger.warning(f'Section component {component_cls} does not define `name` attribute')
 
-        component = component_cls()
+        try:
+            component = component_cls()
+        except:
+            logger.exception(f'Failed to configure component: {component_cls}')
+            return
+
         component.name = component.name or component_cls.__name__
 
         action = QtWidgets.QAction(self.window)
@@ -50,26 +58,35 @@ class MainWindowSectionsView:
         if action.isChecked():
             self.add_component_on_layout(component)
 
+    def add_horizontal_line(self):
+        line = QtWidgets.QFrame()
+        line.setFrameShape(QtWidgets.QFrame.HLine)
+        line.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.layout.addWidget(line)
+
     def add_component_on_layout(self, component: BaseMainWindowSection):
-        layout: QtWidgets.QBoxLayout = self.window.centralwidget.layout()
-        if layout.count() > 0:
-            line = QtWidgets.QFrame()
-            line.setFrameShape(QtWidgets.QFrame.HLine)
-            line.setFrameShadow(QtWidgets.QFrame.Sunken)
-            layout.addWidget(line)
-        layout.addWidget(component)
+        # remove stretch
+        self.layout.removeItem(self.layout.itemAt(self.layout.count() - 1))
+        if self.layout.count() > 0:
+            self.add_horizontal_line()
+        self.layout.addWidget(component)
         component.setVisible(True)
-        # TODO: add spacer after
+        self.layout.addStretch(1)
+
+    def remove_horizontal_line(self, i):
+        item = self.layout.itemAt(i)
+        widget = item.widget()
+        if widget:
+            self.layout.removeWidget(widget)
+            widget.deleteLater()
 
     def remove_component_on_layout(self, component: BaseMainWindowSection):
-        layout: QtWidgets.QBoxLayout = self.window.centralwidget.layout()
-        i = layout.indexOf(component)
+        i = self.layout.indexOf(component)
+        if i == 0:
+            self.remove_horizontal_line(i + 1)
         if i > 0:
-            item = layout.itemAt(i - 1)
-            widget = item.widget()
-            layout.removeWidget(widget)
-            widget.deleteLater()
-        layout.removeWidget(component)
+            self.remove_horizontal_line(i - 1)
+        self.layout.removeWidget(component)
         component.setVisible(False)
 
     def on_section_action_toggled(self, toggled: bool, action: QtWidgets.QAction, component: BaseMainWindowSection):
