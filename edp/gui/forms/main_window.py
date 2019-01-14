@@ -3,7 +3,7 @@ import logging
 from functools import partial
 from typing import Dict, Type, List
 
-from PyQt5.QtWidgets import QMainWindow, QAction, QLayout, QFrame, QBoxLayout
+from PyQt5 import QtWidgets
 
 from edp.gui.compiled.main_window import Ui_MainWindow
 from edp.gui.components import state_overview, simple_events_list
@@ -21,15 +21,14 @@ class SECTIONS:
     order = (MAIN, PLUGINS)
 
 
-class MainWindowSectionsView(Ui_MainWindow):
-    def init_ui(self):
-        self.menuView.clear()
-
+class MainWindowSectionsView:
+    def __init__(self, window: 'MainWindow'):
+        self.window = window
         self._section_components: Dict[str, List[BaseMainWindowSection]] = collections.defaultdict(list)
-        self._section_separators: Dict[str, QAction] = {}
+        self._section_separators: Dict[str, QtWidgets.QAction] = {}
 
         for section in SECTIONS.order:
-            self._section_separators[section] = self.menuView.addSeparator()
+            self._section_separators[section] = self.window.menuView.addSeparator()
 
     def add_component(self, component_cls: Type[BaseMainWindowSection], section=SECTIONS.MAIN):
         if component_cls.name is None:
@@ -38,13 +37,13 @@ class MainWindowSectionsView(Ui_MainWindow):
         component = component_cls()
         component.name = component.name or component_cls.__name__
 
-        action = QAction(self)
+        action = QtWidgets.QAction(self.window)
         action.setCheckable(True)
         action.setChecked(True)
         action.setText(component.name)
         action.toggled.connect(partial(self.on_section_action_toggled, action=action, component=component))
 
-        self.menuView.insertAction(self._section_separators[section], action)
+        self.window.menuView.insertAction(self._section_separators[section], action)
 
         self._section_components[section].append(component)
 
@@ -52,18 +51,18 @@ class MainWindowSectionsView(Ui_MainWindow):
             self.add_component_on_layout(component)
 
     def add_component_on_layout(self, component: BaseMainWindowSection):
-        layout: QLayout = self.centralwidget.layout()
+        layout: QtWidgets.QBoxLayout = self.window.centralwidget.layout()
         if layout.count() > 0:
-            line = QFrame()
-            line.setFrameShape(QFrame.HLine)
-            line.setFrameShadow(QFrame.Sunken)
+            line = QtWidgets.QFrame()
+            line.setFrameShape(QtWidgets.QFrame.HLine)
+            line.setFrameShadow(QtWidgets.QFrame.Sunken)
             layout.addWidget(line)
         layout.addWidget(component)
         component.setVisible(True)
         # TODO: add spacer after
 
     def remove_component_on_layout(self, component: BaseMainWindowSection):
-        layout: QBoxLayout = self.centralwidget.layout()
+        layout: QtWidgets.QBoxLayout = self.window.centralwidget.layout()
         i = layout.indexOf(component)
         if i > 0:
             item = layout.itemAt(i - 1)
@@ -73,7 +72,7 @@ class MainWindowSectionsView(Ui_MainWindow):
         layout.removeWidget(component)
         component.setVisible(False)
 
-    def on_section_action_toggled(self, toggled: bool, action: QAction, component: BaseMainWindowSection):
+    def on_section_action_toggled(self, toggled: bool, action: QtWidgets.QAction, component: BaseMainWindowSection):
         try:
             if toggled:
                 self.add_component_on_layout(component)
@@ -83,17 +82,16 @@ class MainWindowSectionsView(Ui_MainWindow):
             logger.exception(f'on_section_action_toggled({toggled}, {action}, {component})')
 
 
-class MainWindow(MainWindowSectionsView, Ui_MainWindow, QMainWindow):
+class MainWindow(Ui_MainWindow, QtWidgets.QMainWindow):
     def __init__(self, plugin_manager: PluginManager):
         super(MainWindow, self).__init__()
         self.setupUi(self)
 
         self._plugin_manager = plugin_manager
 
-        self.init_ui()
-
-        self.add_component(state_overview.StateOverviewComponent)
-        self.add_component(simple_events_list.SimpleEventsListComponent)
+        self.sections_view = MainWindowSectionsView(self)
+        self.sections_view.add_component(state_overview.StateOverviewComponent)
+        self.sections_view.add_component(simple_events_list.SimpleEventsListComponent)
 
 
 main_window_created_signal = Signal('main window created', window=MainWindow)
