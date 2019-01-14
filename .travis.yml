@@ -5,8 +5,17 @@ cache: pip
 install:
   - pip install -r requirements-test.txt -c constraints.txt codecov
 
-script:
-  - pytest --color=auto --cov=edp --cov-report=term-missing tests/
+
+jobs:
+  include:
+    - stage: test
+      script: pytest --color=auto --cov=edp --cov-report=term-missing tests/
+  allow_failures:
+    - stage: lint
+      script: mypy edp/
+    - stage: lint
+        script: pylint edp/
+
 
 after_success:
   - codecov

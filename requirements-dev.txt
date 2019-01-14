@@ -3,3 +3,5 @@
 
 pyqt5-tools
 pyinstaller
+mypy
+pylint
