@@ -2,9 +2,12 @@ language: python
 python: "3.6"
 cache: pip
 
+stages:
+  - test
+  - lint
+
 install:
   - pip install -r requirements-test.txt -c constraints.txt codecov
-
 
 jobs:
   include:
@@ -15,7 +18,6 @@ jobs:
       script: mypy edp/
     - stage: lint
       script: pylint edp/
-
 
 after_success:
   - codecov
