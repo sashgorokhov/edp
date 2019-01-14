@@ -1,6 +1,6 @@
 import logging
 import threading
-from typing import List, Dict, Callable
+from typing import List, Dict, Callable, Any
 
 import dataclasses
 import inject
@@ -36,7 +36,7 @@ _GAME_STATE_MUTATIONS: Dict[str, Callable[[Event, GameStateData], None]] = {}
 
 
 def mutation(*events: str):
-    def decor(func: Callable[[Event, GameStateData], GameStateData]):
+    def decor(func: Callable[[Event, GameStateData], Any]):
         for event in events:
             if event in _GAME_STATE_MUTATIONS:
                 logger.warning('Mutation for event %s already registered: %s', event, _GAME_STATE_MUTATIONS[event])
