@@ -139,4 +139,4 @@ def get_known_folder_path(known_folder_uid: UUID, user_handle: wintypes.HANDLE =
         raise FileNotFoundError('Known path %s not found' % str(guid))
     path_str = p_path.value
     _CoTaskMemFree(p_path)
-    return pathlib.Path(path_str)
+    return pathlib.Path(path_str)  # type: ignore

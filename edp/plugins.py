@@ -52,9 +52,6 @@ class BasePlugin:
     friendly_name: Optional[str] = None
     github_link: Optional[str] = None
 
-    def is_enabled(self) -> bool:
-        return True
-
 
 def get_module_from_path(path: Path) -> ModuleType:
     spec = importlib.util.spec_from_file_location(path.stem, str(path))
@@ -161,7 +158,10 @@ class PluginLoader:
         return self._plugin_list
 
     def add_plugin(self, plugin_cls: Type[BasePlugin]):
-        plugin = self._init_plugin_cls(plugin_cls)
+        try:
+            plugin = self._init_plugin_cls(plugin_cls)
+        except:
+            logger.exception(f'Failed to initialize plugin: {plugin_cls}')
         self._plugin_list.append(plugin)
         logger.debug(f'Registered plugin {plugin.__module__}.{plugin.__class__.__name__}')
 

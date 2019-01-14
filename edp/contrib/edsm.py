@@ -28,7 +28,10 @@ class EDSMApi:
 
     @classmethod
     def from_settings(cls, settings: Settings) -> 'EDSMApi':
-        return cls(settings.edsm_api_key, settings.edsm_commander_name)
+        if settings.edsm_api_key and settings.edsm_commander_name:
+            return cls(settings.edsm_api_key, settings.edsm_commander_name)
+        raise ValueError(f'Settings not set: edsm_api_key={settings.edsm_api_key} '
+                         f'edsm_commander_name={settings.edsm_commander_name}')
 
     def discarded_events(self) -> List[str]:
         response = self._session.get('https://www.edsm.net/api-journal-v1/discard', timeout=self.timeout)
@@ -47,8 +50,6 @@ class EDSMApi:
 
 
 class EDSMPlugin(BasePlugin):
-    settings: Settings = inject.attr(Settings)
-
     def __init__(self, *args, **kwargs):
         super(EDSMPlugin, self).__init__(*args, **kwargs)
         self._event_buffer: List[Event] = []
@@ -58,25 +59,19 @@ class EDSMPlugin(BasePlugin):
         signals.init_complete.bind(self.on_init_complete)
         journal_event_signal.bind(self.journal_event)
 
+        self.settings = Settings()
+        self.api = EDSMApi.from_settings(self.settings)
+
     def on_init_complete(self):
         plugin_proxy: PluginProxy = inject.instance(PluginProxy)
         self._gamestate: GameState = plugin_proxy.get_plugin(GameState)
 
-    def is_enabled(self) -> bool:
-        return bool(self.settings.edsm_api_key and self.settings.edsm_commander_name)
-
-    @property
-    @functools.lru_cache()
-    def api(self):
-        return EDSMApi.from_settings(self.settings)
-
-    @property
     @functools.lru_cache()
     def discarded_events(self) -> List[str]:
         return self.api.discarded_events()
 
     def journal_event(self, event: Event):
-        if event.name in self.discarded_events:
+        if event.name in self.discarded_events():
             return
         with self._event_buffer_lock:
             self._event_buffer.append(event)
