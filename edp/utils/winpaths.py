@@ -1,6 +1,6 @@
 import ctypes
 import pathlib
-from ctypes import windll, wintypes
+from ctypes import windll, wintypes  # type: ignore
 from uuid import UUID
 
 
