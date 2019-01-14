@@ -2,8 +2,8 @@ import datetime
 import json
 import logging
 import os
-import pathlib
 import threading
+from pathlib import Path
 from typing import NamedTuple, Optional, List, Dict, Union, Any, Iterator
 
 from edp.signalslib import Signal
@@ -45,19 +45,19 @@ def process_event(event_line: str) -> Event:
 
 
 class JournalReader:
-    def __init__(self, base_dir: pathlib.Path):
+    def __init__(self, base_dir: Path):
         self._base_dir = base_dir
-        self._latest_file_mtime = None
+        self._latest_file_mtime: Optional[float] = None
         self._latest_file_events: List['Event'] = []
-        self._latest_file = None
+        self._latest_file: Optional[Path] = None
         self._lock = threading.Lock()
 
-    def get_latest_file(self) -> Optional[pathlib.Path]:
+    def get_latest_file(self) -> Optional[Path]:
         files_list = sorted(self._base_dir.glob('Journal.*.log'), key=lambda path: os.path.getmtime(path))
         return files_list[-1] if len(files_list) else None
 
     @staticmethod
-    def read_all_file_events(path: pathlib.Path) -> Iterator['Event']:
+    def read_all_file_events(path: Path) -> Iterator['Event']:
         try:
             # noinspection PyTypeChecker
             with open(path, 'r', encoding='utf-8') as f:
@@ -96,8 +96,8 @@ class JournalLiveEventThread(StoppableThread):
         self._journal_reader = journal_reader
 
     def run(self):
-        current_file: pathlib.Path = None
-        last_file: pathlib.Path = self._journal_reader.get_latest_file()
+        current_file: Path = None
+        last_file: Path = self._journal_reader.get_latest_file()
         last_pos = 0
 
         while not self.is_stopped:
@@ -124,7 +124,7 @@ class JournalLiveEventThread(StoppableThread):
 
             self.sleep(self.interval)
 
-    def read_file(self, filename: pathlib.Path, pos: int = 0) -> int:
+    def read_file(self, filename: Path, pos: int = 0) -> int:
         num_events = 0
 
         # noinspection PyTypeChecker

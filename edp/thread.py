@@ -38,9 +38,10 @@ class StoppableThread(threading.Thread):
 
 
 class IntervalRunnerThread(StoppableThread):
-    def __init__(self, target: Callable, *args, interval=1, **kwargs):
+    def __init__(self, target: Callable, interval=1, **kwargs):
         self._interval = interval
-        super(IntervalRunnerThread, self).__init__(*args, target=target, **kwargs)
+        kwargs['target'] = target
+        super(IntervalRunnerThread, self).__init__(**kwargs)
 
     # noinspection PyUnresolvedReferences
     def run(self):
