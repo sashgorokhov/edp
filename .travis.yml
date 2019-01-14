@@ -10,6 +10,9 @@ install:
   - pip install -r requirements-test.txt -c constraints.txt codecov
 
 jobs:
+  allow_failures:
+    - script: mypy edp/
+    - script: pylint edp/
   include:
     - stage: test
       script: pytest --color=auto --cov=edp --cov-report=term-missing tests/
