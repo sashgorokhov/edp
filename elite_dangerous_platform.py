@@ -28,7 +28,6 @@ plugin_loader.add_plugin(gamestate.GameState)
 plugin_loader.load_plugins()
 
 plugin_manager = plugins.PluginManager(plugin_loader.get_plugins())
-plugin_manager.set_plugin_annotation_references()
 plugin_proxy = plugins.PluginProxy(plugin_manager)
 
 
@@ -40,6 +39,10 @@ def injection_config(binder: inject.Binder):
 
 inject.clear_and_configure(injection_config)
 logger.debug('Injection complete')
+
+logger.info('Configuring plugins')
+plugin_manager.set_plugin_annotation_references()
+plugin_manager.register_plugin_signals()
 
 thread_manager.add_threads(
     journal.JournalLiveEventThread(journal_reader),

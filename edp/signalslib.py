@@ -2,7 +2,7 @@
 import logging
 import queue
 from types import FunctionType
-from typing import Type, List, NamedTuple, Dict, Union
+from typing import Type, List, NamedTuple, Dict, Union, Callable
 
 from edp.thread import StoppableThread
 from edp.utils import is_dict_subset
@@ -31,14 +31,14 @@ class Signal:
     def __init__(self, name: str, **signature: Type):
         self.name = name
         self.signature: Dict[str, Type] = signature
-        self.callbacks: List[FunctionType] = []
+        self.callbacks: List[Callable] = []
 
-    def bind_nonstrict(self, func: FunctionType):
+    def bind_nonstrict(self, func: Callable):
         self.callbacks.append(func)
         return func
 
-    def bind(self, func: FunctionType):  # make class methods bound when plugin initialized
-        self.check_signature(func)
+    def bind(self, func: Callable):
+        self.check_signature(func)  # runtime type checking, yay!
         self.callbacks.append(func)
         return func  # to be used as decorator
 
@@ -46,7 +46,7 @@ class Signal:
         self.check_signature(data)
         signal_manager.emit(self, **data)
 
-    def check_signature(self, func_or_data: Union[FunctionType, Dict]):
+    def check_signature(self, func_or_data: Union[Callable, Dict]):
         if isinstance(func_or_data, FunctionType) and not check_signature(func_or_data, self.signature):
             raise TypeError(f'Signature mismatch: {self.signature} != {func_or_data} {func_or_data.__annotations__}')
         elif isinstance(func_or_data, Dict):
@@ -57,7 +57,7 @@ class Signal:
 
 class SignalExecutionItem(NamedTuple):
     name: str
-    callbacks: List[FunctionType]
+    callbacks: List[Callable]
     kwargs: dict
 
 

@@ -1,10 +1,12 @@
+import functools
 import importlib.util
 import inspect
 import logging
 from pathlib import Path
-from types import ModuleType, FunctionType
-from typing import Iterator, Type, List, TypeVar, Dict, Optional, NamedTuple, Tuple, Any
+from types import ModuleType
+from typing import Iterator, Type, List, TypeVar, Dict, Optional, NamedTuple, Tuple, Any, Iterable, Callable
 
+from edp import signalslib
 from edp.thread import IntervalRunnerThread
 
 logger = logging.getLogger(__name__)
@@ -12,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 class MARKS:
     SCHEDULED = 'scheduled'
+    SIGNAL = 'signal'
 
 
 class FunctionMark(NamedTuple):
@@ -29,22 +32,26 @@ def mark_function(name: str, **options):
     return decor
 
 
-def get_marked_methods(mark: str, obj) -> Iterator[Tuple[FunctionType, FunctionMark]]:
+def get_marked_methods(mark: str, obj) -> Iterator[Tuple[Callable, FunctionMark]]:
     for name, t, _, _ in inspect.classify_class_attrs(type(obj)):
         if not name.startswith('__') and t == 'method':
-            method: FunctionType = getattr(obj, name)
+            method: Callable = getattr(obj, name)
             marks = get_function_marks(method)
             for func_mark in marks:
                 if func_mark.name == mark:
                     yield method, func_mark
 
 
-def get_function_marks(func: FunctionType) -> List[FunctionMark]:
+def get_function_marks(func: Callable) -> List[FunctionMark]:
     return getattr(func, '__edp_plugin_mark__', [])
 
 
-def scheduled(interval=1):
-    return mark_function(MARKS.SCHEDULED, interval=interval)
+def scheduled(interval=1, plugin_enabled=True):
+    return mark_function(MARKS.SCHEDULED, interval=interval, plugin_enabled=plugin_enabled)
+
+
+def bind_signal(*signals: signalslib.Signal, plugin_enabled=True):
+    return mark_function(MARKS.SIGNAL, signals=signals, plugin_enabled=plugin_enabled)
 
 
 class BasePlugin:
@@ -121,6 +128,12 @@ def get_plugins_cls_from_package(path: Path) -> Iterator[Type[BasePlugin]]:
 T = TypeVar('T', BasePlugin, Any)
 
 
+class MarkedMethodType(NamedTuple):
+    plugin: BasePlugin
+    method: Callable
+    mark: FunctionMark
+
+
 class PluginManager:
     # internal during app lifetime, passed as init param
     def __init__(self, plugins: List[BasePlugin]):
@@ -130,19 +143,45 @@ class PluginManager:
     def get_plugin(self, plugin_cls: Type[T]) -> Optional[T]:
         return self._plugins_cls_map.get(plugin_cls, None)
 
-    def get_marked_methods(self, name: str) -> Iterator[Tuple[FunctionType, FunctionMark]]:
+    def get_marked_methods(self, name: str) -> Iterator[MarkedMethodType]:
         for plugin in self._plugins:
-            yield from get_marked_methods(name, plugin)
+            try:
+                yield from (MarkedMethodType(plugin, method, mark) for method, mark in get_marked_methods(name, plugin))
+            except:
+                logger.exception(f'Failed to get plugin marked methods: {plugin}')
 
     def get_scheduled_methods_threads(self) -> Iterator[IntervalRunnerThread]:
-        for method, mark in self.get_marked_methods(MARKS.SCHEDULED):
-            yield IntervalRunnerThread(method, interval=mark.options.get('interval', 1))
+        for marked_method in self.get_marked_methods(MARKS.SCHEDULED):
+            plugin_enabled: bool = marked_method.mark.options['plugin_enabled']
+            interval: int = marked_method.mark.options.get('interval', 1)
+
+            callback = self._callback_wrapper(marked_method.method, marked_method.plugin, plugin_enabled)
+            yield IntervalRunnerThread(callback, interval=interval)
 
     def set_plugin_annotation_references(self):
         for plugin in self._plugins:
             for key, cls in getattr(plugin, '__annotations__', {}).items():
                 if issubclass(cls, BasePlugin) and cls in self._plugins_cls_map:
                     setattr(plugin, key, self._plugins_cls_map[cls])
+
+    def _callback_wrapper(self, func: Callable, plugin: BasePlugin, plugin_enabled: bool):
+        @functools.wraps(func)
+        def callback(**kwargs):
+            if plugin_enabled and not plugin.is_enalbed():
+                logger.debug(f'Skipping callback {func} because plugin is not enabled')
+                return
+            return func(**kwargs)
+
+        return callback
+
+    def register_plugin_signals(self):
+        for marked_method in self.get_marked_methods(MARKS.SIGNAL):
+            signals: Iterable[signalslib.Signal] = marked_method.mark.options['signals']
+            plugin_enabled: bool = marked_method.mark.options['plugin_enabled']
+
+            for signal in signals:
+                callback = self._callback_wrapper(marked_method.method, marked_method.plugin, plugin_enabled)
+                signal.bind(callback)
 
 
 class PluginProxy:

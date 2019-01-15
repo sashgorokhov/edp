@@ -67,8 +67,6 @@ class EDSMPlugin(BasePlugin):
         self._event_buffer: List[Event] = []
         self._event_buffer_lock = threading.Lock()
 
-        journal_event_signal.bind(self.journal_event)
-
         self.settings = EDSMSettings.get_insance()
 
     def is_enalbed(self):
@@ -84,15 +82,16 @@ class EDSMPlugin(BasePlugin):
     def discarded_events(self) -> List[str]:
         return self.api.discarded_events()
 
+    @plugins.bind_signal(journal_event_signal)
     def journal_event(self, event: Event):
-        if not self.is_enalbed() or event.name in self.discarded_events:
+        if event.name in self.discarded_events:
             return
         with self._event_buffer_lock:
             self._event_buffer.append(event)
 
     @plugins.scheduled(60)
     def push_events(self):
-        if not self._event_buffer or not self.is_enalbed():
+        if not self._event_buffer:
             return
 
         with self._event_buffer_lock:
