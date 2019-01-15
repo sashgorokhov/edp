@@ -8,6 +8,7 @@ from PyQt5 import QtWidgets
 from edp.gui.compiled.main_window import Ui_MainWindow
 from edp.gui.components import state_overview, simple_events_list
 from edp.gui.components.base import BaseMainWindowSection
+from edp.gui.forms.settings_window import SettingsWindow
 from edp.plugins import PluginManager
 from edp.signalslib import Signal
 
@@ -104,11 +105,27 @@ class MainWindow(Ui_MainWindow, QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
         self.setupUi(self)
 
-        self._plugin_manager = plugin_manager
+        self._app = QtWidgets.QApplication.instance()
 
         self.sections_view = MainWindowSectionsView(self)
         self.sections_view.add_component(state_overview.StateOverviewComponent)
         self.sections_view.add_component(simple_events_list.SimpleEventsListComponent)
+
+        self.settings_window = SettingsWindow(plugin_manager)
+
+        action = QtWidgets.QAction(self)
+        action.setText('Settings')
+        action.triggered.connect(self.settings_window.show)
+        self.menubar.addAction(action)
+
+        self._app.aboutToQuit.connect(self.close)
+        self._app.aboutToQuit.connect(self.settings_window.close)
+
+        layout: QtWidgets.QVBoxLayout = self.layout()
+        layout.setContentsMargins(0, 0, 0, 0)
+
+    def closeEvent(self, *args, **kwargs):
+        self._app.quit()
 
 
 main_window_created_signal = Signal('main window created', window=MainWindow)

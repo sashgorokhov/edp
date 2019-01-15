@@ -1,9 +1,10 @@
 import logging
 import time
+import traceback
 
 import inject
 
-from edp import signalslib, plugins, thread, signals, journal
+from edp import signalslib, plugins, thread, signals, journal, config
 from edp.contrib import edsm, gamestate
 from edp.settings import EDPSettings
 
@@ -56,13 +57,24 @@ with thread_manager:
 
     logger.info('Initializing gui')
 
-    from edp.gui.forms.main_window import MainWindow, main_window_created_signal
-    from PyQt5.QtWidgets import QApplication
+    try:
+        from edp.gui.forms.main_window import MainWindow, main_window_created_signal
+        from PyQt5.QtWidgets import QApplication
 
-    app = QApplication([])
+        app = QApplication([])
+        # app.setApplicationDisplayName('Elite Dangerous Platform')
+        app.setApplicationVersion(config.VERSION)
+        app.setApplicationName('EDP')
 
-    window = MainWindow(plugin_manager)
-    main_window_created_signal.emit(window=window)
-    window.show()
+        window = MainWindow(plugin_manager)
+        main_window_created_signal.emit(window=window)
+        window.show()
+    except:
+        logger.exception('Error initializing gui')
+        tb = traceback.format_exc()
+        import ctypes
 
-    app.exec_()
+        ctypes.windll.user32.MessageBoxW(0, tb, "Error initializing GUI of Elite Dangerous Platform", 1)
+        raise
+    else:
+        app.exec_()

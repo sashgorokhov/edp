@@ -62,6 +62,9 @@ class BasePlugin:
     def is_enalbed(self) -> bool:
         return True
 
+    def get_settings_widget(self):
+        raise NotImplementedError
+
 
 def get_module_from_path(path: Path) -> ModuleType:
     spec = importlib.util.spec_from_file_location(path.stem, str(path))
@@ -182,6 +185,15 @@ class PluginManager:
             for signal in signals:
                 callback = self._callback_wrapper(marked_method.method, marked_method.plugin, plugin_enabled)
                 signal.bind(callback)
+
+    def get_settings_widgets(self) -> Iterator:
+        for plugin in self._plugins:
+            try:
+                yield plugin.get_settings_widget()
+            except NotImplementedError:
+                pass
+            except:
+                logger.exception(f'Failed to get settings widget from {plugin}')
 
 
 class PluginProxy:

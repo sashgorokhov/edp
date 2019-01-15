@@ -33,9 +33,6 @@ class Ui_MainWindow(object):
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 300, 21))
         self.menubar.setObjectName("menubar")
-        self.menuSettings = QtWidgets.QMenu(self.menubar)
-        self.menuSettings.setTearOffEnabled(False)
-        self.menuSettings.setObjectName("menuSettings")
         self.menuView = QtWidgets.QMenu(self.menubar)
         self.menuView.setObjectName("menuView")
         MainWindow.setMenuBar(self.menubar)
@@ -52,7 +49,6 @@ class Ui_MainWindow(object):
         self.actionEvent_list.setChecked(True)
         self.actionEvent_list.setObjectName("actionEvent_list")
         self.menubar.addAction(self.menuView.menuAction())
-        self.menubar.addAction(self.menuSettings.menuAction())
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -60,8 +56,6 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "EDP"))
-        self.menuSettings.setTitle(_translate("MainWindow", "Settings"))
         self.menuView.setTitle(_translate("MainWindow", "View"))
         self.actionOverview.setText(_translate("MainWindow", "Overview"))
         self.actionEvent_list.setText(_translate("MainWindow", "Event list"))
-

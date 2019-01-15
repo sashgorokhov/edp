@@ -7,7 +7,8 @@ from typing import List, Optional, Callable, TypeVar
 import requests
 
 from edp import plugins
-from edp.contrib.gamestate import GameState, GameStateData
+from edp.contrib.gamestate import GameState, GameStateData, game_state_set_signal
+from edp.gui.forms.settings_window import VLayoutTab
 from edp.journal import Event, journal_event_signal
 from edp.plugins import BasePlugin
 from edp.settings import BaseSettings
@@ -18,6 +19,16 @@ logger = logging.getLogger(__name__)
 class EDSMSettings(BaseSettings):
     api_key: Optional[str] = None
     commander_name: Optional[str] = None
+
+
+class EDSMSettingsTabWidget(VLayoutTab):
+    friendly_name = 'EDSM'
+
+    def get_settings_links(self):
+        settings = EDSMSettings.get_insance()
+
+        yield self.link_line_edit(settings, 'api_key', 'Api key')
+        yield self.link_line_edit(settings, 'commander_name', 'Commander name')
 
 
 class EDSMApi:
@@ -72,6 +83,11 @@ class EDSMPlugin(BasePlugin):
     def is_enalbed(self):
         return self.settings.api_key and self.settings.commander_name
 
+    @plugins.bind_signal(game_state_set_signal, plugin_enabled=False)
+    def on_game_state_set(self, state: GameStateData):
+        if not self.settings.commander_name and state.commander.name:
+            self.settings.commander_name = state.commander.name
+
     @property  # type: ignore
     @cache
     def api(self) -> EDSMApi:
@@ -113,3 +129,6 @@ class EDSMPlugin(BasePlugin):
         event['_shipId'] = state.ship.id
 
         return json.dumps(event)
+
+    def get_settings_widget(self):
+        return EDSMSettingsTabWidget()

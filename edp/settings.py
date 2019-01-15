@@ -14,7 +14,8 @@ T = TypeVar('T')
 
 
 def get_settings_path(name: str) -> Path:
-    return (config.SETTINGS_DIR / name).with_suffix('.shelve')
+    path = (config.SETTINGS_DIR / name)
+    return path.with_name(path.name + '.shelve')
 
 
 class BaseSettings(UserDict):
