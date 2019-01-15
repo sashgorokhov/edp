@@ -1,27 +1,71 @@
-import functools
-import pathlib
-from typing import Optional
+import atexit
+import logging
+import shelve
+from collections import UserDict
+from pathlib import Path
+from typing import Union, Optional, Dict, TypeVar
 
-from edp.utils import winpaths
+from edp import config
+from edp.utils import get_default_journal_path
+
+logger = logging.getLogger(__name__)
+
+T = TypeVar('T')
 
 
-class Settings:
-    base_dir = pathlib.Path(__file__).parent.parent
+def get_settings_path(name: str) -> Path:
+    return (config.SETTINGS_DIR / name).with_suffix('.shelve')
+
+
+class BaseSettings(UserDict):
+    __setting_per_name__: Dict[str, 'BaseSettings'] = {}
+
+    def __init__(self, path: Path):
+        super(BaseSettings, self).__init__()
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        self._shelve = shelve.open(str(path), writeback=True)
+        self.data = self._shelve  # type: ignore
+
+        for key in self.__class__.__annotations__:
+            if hasattr(self, key):
+                value = getattr(self, key)
+                self.data.setdefault(key, value)
+                delattr(self.__class__, key)
+
+        atexit.register(lambda: self._shelve.close())
+
+    @classmethod
+    def get_insance(cls, name: Optional[str] = None):
+        name = name or f'{cls.__module__}.{cls.__name__}'
+        if name not in cls.__setting_per_name__:
+            path = get_settings_path(name)
+            cls.__setting_per_name__[name] = cls(path)
+        return cls.__setting_per_name__[name]
+
+    def __setattr__(self, key, value):
+        if key in self.__annotations__ and 'data' in self.__dict__:
+            self.__setitem__(key, value)
+        else:
+            return super(BaseSettings, self).__setattr__(key, value)
+
+    def __getattr__(self, item):  # type: ignore
+        if item in self.__annotations__ and 'data' in self.__dict__:
+            return self.data[item]
+        else:
+            return object.__getattribute__(self, item)
+
+
+class EDPSettings(BaseSettings):
+    plugin_dir: Path = config.BASE_DIR / 'plugins'
 
     @property
-    def plugin_dir(self) -> pathlib.Path:
-        return self.base_dir / 'plugins'
+    def journal_dir(self) -> Path:
+        if 'journal_dir' not in self:
+            self['journal_dir'] = get_default_journal_path() or config.LOCALAPPDATA_DIR / 'journal'
+        return self['journal_dir']
 
-    @property  # type: ignore
-    @functools.lru_cache()
-    def journal_dir(self) -> pathlib.Path:
-        saved_games_dir = winpaths.get_known_folder_path(winpaths.KNOWN_FOLDERS.SavedGames)
-        return saved_games_dir / 'Frontier Developments' / 'Elite Dangerous'
-
-    @property
-    def edsm_api_key(self) -> Optional[str]:
-        return None
-
-    @property
-    def edsm_commander_name(self) -> Optional[str]:
-        return None
+    @journal_dir.setter
+    def journal_dir(self, value: Union[str, Path]):
+        self['journal_dir'] = value

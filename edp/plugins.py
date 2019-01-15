@@ -52,6 +52,9 @@ class BasePlugin:
     friendly_name: Optional[str] = None
     github_link: Optional[str] = None
 
+    def is_enalbed(self) -> bool:
+        return True
+
 
 def get_module_from_path(path: Path) -> ModuleType:
     spec = importlib.util.spec_from_file_location(path.stem, str(path))
@@ -122,10 +125,10 @@ class PluginManager:
     # internal during app lifetime, passed as init param
     def __init__(self, plugins: List[BasePlugin]):
         self._plugins = plugins
-        self._plugin_cls_map: Dict[Type[BasePlugin], BasePlugin] = {type(p): p for p in plugins}
+        self._plugins_cls_map: Dict[Type[BasePlugin], BasePlugin] = {type(p): p for p in plugins}
 
     def get_plugin(self, plugin_cls: Type[T]) -> Optional[T]:
-        return self._plugin_cls_map.get(plugin_cls, None)
+        return self._plugins_cls_map.get(plugin_cls, None)
 
     def get_marked_methods(self, name: str) -> Iterator[Tuple[FunctionType, FunctionMark]]:
         for plugin in self._plugins:
@@ -134,6 +137,12 @@ class PluginManager:
     def get_scheduled_methods_threads(self) -> Iterator[IntervalRunnerThread]:
         for method, mark in self.get_marked_methods(MARKS.SCHEDULED):
             yield IntervalRunnerThread(method, interval=mark.options.get('interval', 1))
+
+    def set_plugin_annotation_references(self):
+        for plugin in self._plugins:
+            for key, cls in getattr(plugin, '__annotations__', {}).items():
+                if issubclass(cls, BasePlugin) and cls in self._plugins_cls_map:
+                    setattr(plugin, key, self._plugins_cls_map[cls])
 
 
 class PluginProxy:
@@ -162,16 +171,17 @@ class PluginLoader:
             plugin = self._init_plugin_cls(plugin_cls)
         except:
             logger.exception(f'Failed to initialize plugin: {plugin_cls}')
+            return
         self._plugin_list.append(plugin)
         logger.debug(f'Registered plugin {plugin.__module__}.{plugin.__class__.__name__}')
 
     def load_plugins(self):
-        for plugin_cls in get_plugins_cls_from_dir(self._plugin_dir):
-            logger.debug(f'Loaded plugin {plugin_cls} from {plugin_cls.__module__}')
-            try:
+        try:
+            for plugin_cls in get_plugins_cls_from_dir(self._plugin_dir):
+                logger.debug(f'Loaded plugin {plugin_cls} from {plugin_cls.__module__}')
                 self.add_plugin(plugin_cls)
-            except:
-                logger.exception(f'Failed to init plugin: {plugin_cls}')
+        except:
+            logger.exception('Failed to load any plugin')
 
     def _init_plugin_cls(self, plugin_cls: Type[BasePlugin]) -> BasePlugin:
         return plugin_cls()

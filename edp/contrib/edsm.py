@@ -2,18 +2,22 @@ import functools
 import json
 import logging
 import threading
-from typing import List
+from typing import List, Optional, Callable, TypeVar
 
-import inject
 import requests
 
-from edp import signals, plugins
+from edp import plugins
 from edp.contrib.gamestate import GameState, GameStateData
 from edp.journal import Event, journal_event_signal
-from edp.plugins import BasePlugin, PluginProxy
-from edp.settings import Settings
+from edp.plugins import BasePlugin
+from edp.settings import BaseSettings
 
 logger = logging.getLogger(__name__)
+
+
+class EDSMSettings(BaseSettings):
+    api_key: Optional[str] = None
+    commander_name: Optional[str] = None
 
 
 class EDSMApi:
@@ -27,11 +31,10 @@ class EDSMApi:
         self._session = requests.Session()
 
     @classmethod
-    def from_settings(cls, settings: Settings) -> 'EDSMApi':
-        if settings.edsm_api_key and settings.edsm_commander_name:
-            return cls(settings.edsm_api_key, settings.edsm_commander_name)
-        raise ValueError(f'Settings not set: edsm_api_key={settings.edsm_api_key} '
-                         f'edsm_commander_name={settings.edsm_commander_name}')
+    def from_settings(cls, settings: EDSMSettings) -> 'EDSMApi':
+        if settings.api_key and settings.commander_name:
+            return cls(settings.api_key, settings.commander_name)
+        raise ValueError(f'Settings not set: api_key={settings.api_key} commander_name={settings.commander_name}')
 
     def discarded_events(self) -> List[str]:
         response = self._session.get('https://www.edsm.net/api-journal-v1/discard', timeout=self.timeout)
@@ -49,44 +52,54 @@ class EDSMApi:
         logger.debug('Journal events sent: %s', response.status_code)
 
 
+T = TypeVar('T')
+
+
+def cache(func: Callable[..., T]) -> T:
+    return functools.lru_cache()(func)  # type: ignore
+
+
 class EDSMPlugin(BasePlugin):
+    gamestate: GameState
+
     def __init__(self, *args, **kwargs):
         super(EDSMPlugin, self).__init__(*args, **kwargs)
         self._event_buffer: List[Event] = []
         self._event_buffer_lock = threading.Lock()
-        self._gamestate: GameState = None
 
-        signals.init_complete.bind(self.on_init_complete)
         journal_event_signal.bind(self.journal_event)
 
-        self.settings = Settings()
-        self.api = EDSMApi.from_settings(self.settings)
+        self.settings = EDSMSettings.get_insance()
 
-    def on_init_complete(self):
-        plugin_proxy: PluginProxy = inject.instance(PluginProxy)
-        self._gamestate: GameState = plugin_proxy.get_plugin(GameState)
+    def is_enalbed(self):
+        return self.settings.api_key and self.settings.commander_name
 
-    @functools.lru_cache()
+    @property  # type: ignore
+    @cache
+    def api(self) -> EDSMApi:
+        return EDSMApi.from_settings(self.settings)
+
+    @property  # type: ignore
+    @cache
     def discarded_events(self) -> List[str]:
         return self.api.discarded_events()
 
     def journal_event(self, event: Event):
-        if event.name in self.discarded_events():
+        if not self.is_enalbed() or event.name in self.discarded_events:
             return
         with self._event_buffer_lock:
             self._event_buffer.append(event)
 
     @plugins.scheduled(60)
     def push_events(self):
-        if not self._event_buffer:
+        if not self._event_buffer or not self.is_enalbed():
             return
 
         with self._event_buffer_lock:
             events = self._event_buffer.copy()
             self._event_buffer.clear()
 
-        state = self._gamestate.state
-        patched_events = [self.patch_event(event.raw, state) for event in events]
+        patched_events = [self.patch_event(event.raw, self.gamestate.state) for event in events]
 
         self.api.journal_event(*patched_events)
 

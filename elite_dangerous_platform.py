@@ -5,14 +5,14 @@ import inject
 
 from edp import signalslib, plugins, thread, signals, journal
 from edp.contrib import edsm, gamestate
-from edp.settings import Settings
+from edp.settings import EDPSettings
 
 logging.basicConfig(level=logging.DEBUG)
 
 logger = logging.getLogger('edp')
 
 logger.info('Initializing settings')
-settings = Settings()
+settings = EDPSettings.get_insance()
 
 logger.info('Initializing thread manager')
 thread_manager = thread.ThreadManager()
@@ -28,18 +28,18 @@ plugin_loader.add_plugin(gamestate.GameState)
 plugin_loader.load_plugins()
 
 plugin_manager = plugins.PluginManager(plugin_loader.get_plugins())
+plugin_manager.set_plugin_annotation_references()
 plugin_proxy = plugins.PluginProxy(plugin_manager)
 
 
 def injection_config(binder: inject.Binder):
-    binder.bind(Settings, settings)
     binder.bind(plugins.PluginProxy, plugin_proxy)
     binder.bind(thread.ThreadManager, thread_manager)
     binder.bind(journal.JournalReader, journal_reader)
 
 
-logger.debug('Injection complete')
 inject.clear_and_configure(injection_config)
+logger.debug('Injection complete')
 
 thread_manager.add_threads(
     journal.JournalLiveEventThread(journal_reader),
