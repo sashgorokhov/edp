@@ -73,6 +73,26 @@ def fetch_upx(c: Context):
     print(f'UPX now is in {UPX_DIR}')
 
 
+@invoke.task()
+def mypy(c):
+    c.run('mypy edp')
+
+
+@invoke.task()
+def pylint(c):
+    c.run('pylint edp', warn=True)
+
+
+@invoke.task()
+def unittests(c):
+    c.run('pytest -sv tests')
+
+
+@invoke.task(mypy, pylint, unittests)
+def test(c):
+    pass
+
+
 @invoke.task
 def build(c):
     if not UPX_DIR.exists():
@@ -81,7 +101,7 @@ def build(c):
     c.run(f'pyinstaller -w -y --clean --log-level WARN --upx-dir {UPX_DIR} {TARGET}')
 
 
-@invoke.task(build)
+@invoke.task(test, build)
 def dist(c):
     print(f'Create dist zip in {DIST_ZIP}')
     c.run(f'powershell Compress-Archive -Force -Path {DIST_DIR} -DestinationPath {DIST_ZIP}')

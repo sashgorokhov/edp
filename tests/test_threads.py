@@ -6,10 +6,10 @@ import pytest
 from edp.thread import IntervalRunnerThread, ThreadManager, StoppableThread
 
 
-class TestThread(StoppableThread):
+class ThreadTest(StoppableThread):
     def __init__(self, *args, **kwargs):
         self.mock = mock.MagicMock()
-        super(TestThread, self).__init__(*args, **kwargs)
+        super(ThreadTest, self).__init__(*args, **kwargs)
 
     def run(self):
         while not self.is_stopped:
@@ -28,7 +28,7 @@ def test_stoppable_thread_starts():
 
 
 def test_stoppable_thread_stops():
-    thread = TestThread()
+    thread = ThreadTest()
     thread.start()
     time.sleep(0.5)
 
@@ -42,7 +42,7 @@ def test_stoppable_thread_stops():
 
 
 def test_stoppable_thread_contextmanager():
-    with TestThread() as thread:
+    with ThreadTest() as thread:
         time.sleep(0.5)
 
     time.sleep(1)
@@ -54,7 +54,7 @@ def test_stoppable_thread_contextmanager():
 
 @pytest.mark.parametrize('interval', [2, 1, 0.5])
 def test_stoppable_thread_sleep(interval):
-    class MyTestThread(TestThread):
+    class MyTestThread(ThreadTest):
         def run(self):
             self.mock()
             self.sleep(interval)
