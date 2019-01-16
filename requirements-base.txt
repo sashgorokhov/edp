@@ -2,3 +2,4 @@ requests
 inject
 dataclasses
 PyQt5
+urlpath
