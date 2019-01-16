@@ -134,7 +134,8 @@ class JournalLiveEventThread(StoppableThread):
             for num_events, line in enumerate(f.readlines()):
                 self.process_line(line)
 
-            logger.debug('Read %s events', num_events)
+            if num_events:
+                logger.debug('Read %s events', num_events)
 
             return f.tell()
 
