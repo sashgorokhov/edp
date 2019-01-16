@@ -10,3 +10,5 @@ SETTINGS_DIR: Path = LOCALAPPDATA_DIR / 'Elite Dangerous Platform' / 'Settings'
 
 VERSION_PATH: Path = BASE_DIR / 'VERSION'
 VERSION: str = VERSION_PATH.read_text() if VERSION_PATH.exists() else '0.0.1'
+
+FROZEN: bool = getattr(sys, 'frozen', False)
