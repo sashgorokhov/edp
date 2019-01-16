@@ -10,6 +10,7 @@ from edp.gui.components import state_overview, simple_events_list
 from edp.gui.components.base import BaseMainWindowSection
 from edp.gui.forms.settings_window import SettingsWindow
 from edp.plugins import PluginManager
+from edp.settings import SimpleSettings
 from edp.signalslib import Signal
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,8 @@ class SECTIONS:
 
 class MainWindowSectionsView:
     def __init__(self, window: 'MainWindow'):
+        self._settings = SimpleSettings.get_insance('main_window_sections')
+
         self.window = window
         self.layout: QtWidgets.QVBoxLayout = self.window.centralwidget.layout()
         self._section_components: Dict[str, List[BaseMainWindowSection]] = collections.defaultdict(list)
@@ -45,10 +48,11 @@ class MainWindowSectionsView:
             return
 
         component.name = component.name or component_cls.__name__
+        self._settings.setdefault(component.name, True)
 
         action = QtWidgets.QAction(self.window)
         action.setCheckable(True)
-        action.setChecked(True)
+        action.setChecked(self._settings[component.name])
         action.setText(component.name)
         action.toggled.connect(partial(self.on_section_action_toggled, action=action, component=component))
 
@@ -96,6 +100,7 @@ class MainWindowSectionsView:
                 self.add_component_on_layout(component)
             else:
                 self.remove_component_on_layout(component)
+            self._settings[component.name] = toggled
         except:
             logger.exception(f'on_section_action_toggled({toggled}, {action}, {component})')
 
