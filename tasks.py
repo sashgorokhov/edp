@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 import invoke
@@ -99,6 +100,7 @@ def build(c):
         fetch_upx(c)
 
     c.run(f'pyinstaller -w -y --clean --log-level WARN --upx-dir {UPX_DIR} {TARGET}')
+    shutil.copy(str(BASE_DIR / 'VERSION'), str(DIST_DIR / 'VERSION'))
 
 
 @invoke.task(test, build)
@@ -115,3 +117,13 @@ def dist(c):
     print('MD5 zip:', md5_zip)
     print('SHA1 exe:', sha1_exe)
     print('SHA1 zip:', sha1_zip)
+
+
+@invoke.task()
+def freeze(c):
+    VENV_DIR: Path = LOCAL_TEMP_DIR / 'env'
+    PIP: Path = VENV_DIR / 'Scripts' / 'pip.exe'
+    c.run(f'virtualenv {VENV_DIR}')
+    c.run(f"{PIP} install -r requirements-dev.txt")
+    c.run(f"{PIP} freeze > constraints.txt")
+    shutil.rmtree(VENV_DIR)
