@@ -60,7 +60,9 @@ class EDSMApi:
             'message': events
         }
         response = self._session.post('https://www.edsm.net/api-journal-v1', json=data, timeout=15)
-        logger.debug('Journal events sent: %s', response.status_code)
+        logger.debug(f'Sent {len(events)} events, status code is {response.status_code}')
+        if response.status_code >= 400:
+            logger.error(response.text)
 
 
 T = TypeVar('T')
