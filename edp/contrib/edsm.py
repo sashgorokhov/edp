@@ -45,7 +45,8 @@ class EDSMApi:
     def from_settings(cls, settings: EDSMSettings) -> 'EDSMApi':
         if settings.api_key and settings.commander_name:
             return cls(settings.api_key, settings.commander_name)
-        raise ValueError(f'Settings not set: api_key={settings.api_key} commander_name={settings.commander_name}')
+        raise ValueError(
+            f'Settings not set: api_key={"*" * len(settings.api_key or "")} commander_name={settings.commander_name}')
 
     def discarded_events(self) -> List[str]:
         response = self._session.get('https://www.edsm.net/api-journal-v1/discard', timeout=self.timeout)
