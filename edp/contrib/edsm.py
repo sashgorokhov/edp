@@ -6,7 +6,7 @@ from typing import List, Optional, Callable, TypeVar
 
 import requests
 
-from edp import plugins
+from edp import plugins, config
 from edp.contrib.gamestate import GameState, GameStateData, game_state_set_signal
 from edp.gui.forms.settings_window import VLayoutTab
 from edp.journal import Event, journal_event_signal
@@ -33,7 +33,7 @@ class EDSMSettingsTabWidget(VLayoutTab):
 
 class EDSMApi:
     software = 'edp'
-    software_version = '0.1'
+    software_version = config.VERSION
     timeout = 10
 
     def __init__(self, api_key: str, commander_name: str):
