@@ -46,11 +46,15 @@ def get_function_marks(func: Callable) -> List[FunctionMark]:
     return getattr(func, '__edp_plugin_mark__', [])
 
 
-def scheduled(interval=1, plugin_enabled=True):
+def scheduled(interval: int = 1, plugin_enabled=True):
+    if interval <= 0:
+        raise ValueError(f'interval must be greater than zero: {interval}')
     return mark_function(MARKS.SCHEDULED, interval=interval, plugin_enabled=plugin_enabled)
 
 
 def bind_signal(*signals: signalslib.Signal, plugin_enabled=True):
+    if not signals:
+        raise ValueError('At least one signal must be specified')
     return mark_function(MARKS.SIGNAL, signals=signals, plugin_enabled=plugin_enabled)
 
 
@@ -79,13 +83,15 @@ def get_module_from_path(path: Path) -> ModuleType:
 def _get_plugin_classes_from_module(module: ModuleType) -> Iterator[Type[BasePlugin]]:
     for attr in dir(module):
         value = getattr(module, attr)
+        # FIXME: What if plugin imports one of contrib plugins?
+        # Check __module__ or something like that.
         if isinstance(value, type) and issubclass(value, BasePlugin) and value != BasePlugin:
             yield value
 
 
 def get_plugins_cls_from_dir(dir: Path) -> Iterator[Type[BasePlugin]]:
     if not dir.is_dir():
-        raise TypeError(f'Is not a directory: {dir}')
+        raise NotADirectoryError(f'Is not a directory: {dir}')
 
     for path in dir.iterdir():
         try:
@@ -141,6 +147,7 @@ class PluginManager:
     # internal during app lifetime, passed as init param
     def __init__(self, plugins: List[BasePlugin]):
         self._plugins = plugins
+        # What if we have two plugins with the same types?
         self._plugins_cls_map: Dict[Type[BasePlugin], BasePlugin] = {type(p): p for p in plugins}
 
     def get_plugin(self, plugin_cls: Type[T]) -> Optional[T]:
@@ -164,7 +171,7 @@ class PluginManager:
     def set_plugin_annotation_references(self):
         for plugin in self._plugins:
             for key, cls in getattr(plugin, '__annotations__', {}).items():
-                if issubclass(cls, BasePlugin) and cls in self._plugins_cls_map:
+                if isinstance(cls, type) and issubclass(cls, BasePlugin) and cls in self._plugins_cls_map:
                     setattr(plugin, key, self._plugins_cls_map[cls])
 
     def _callback_wrapper(self, func: Callable, plugin: BasePlugin, plugin_enabled: bool):
