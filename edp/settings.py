@@ -30,7 +30,7 @@ class BaseSettings(UserDict):
         self.data = self._shelve  # type: ignore
 
         for key in self.__class__.__annotations__:
-            if hasattr(self, key) and key not in BaseSettings.__dict__:
+            if hasattr(self.__class__, key) and key not in BaseSettings.__dict__:
                 value = getattr(self, key)
                 self.data.setdefault(key, value)
                 delattr(self.__class__, key)
