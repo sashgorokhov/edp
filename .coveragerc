@@ -3,3 +3,8 @@ branch = True
 omit =
     */edp/gui/*
     */edp/utils/winpaths.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    raise NotImplementedError

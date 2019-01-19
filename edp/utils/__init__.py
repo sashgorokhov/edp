@@ -15,7 +15,7 @@ def is_dict_subset(source: dict, subset: dict) -> bool:
     return True
 
 
-def get_default_journal_path() -> Optional[Path]:
+def get_default_journal_path() -> Optional[Path]:  # pragma: no cover
     try:
         from edp.utils import winpaths
         saved_games_dir = winpaths.get_known_folder_path(winpaths.KNOWN_FOLDERS.SavedGames)
