@@ -1,4 +1,5 @@
 import dataclasses
+import pytest
 
 from edp import entities
 
@@ -62,3 +63,37 @@ def test_entity_clear():
 
     assert e.foo == '1'
     assert e.nested.field == {}
+
+
+def test_material_sum():
+    m1 = entities.Material('test', 1, 'test')
+    m2 = entities.Material('test', 3, 'test')
+
+    result = m1 + m2
+    assert isinstance(result, entities.Material)
+    assert result is m1
+    assert result.count == 4
+
+
+def test_material_sum_different_materials():
+    m1 = entities.Material('test', 1, 'test')
+    m2 = entities.Material('test2', 3, 'test')
+
+    with pytest.raises(TypeError):
+        result = m1 + m2
+
+
+def test_material_storage_sum_material():
+    material_storage = entities.MaterialStorage()
+    m = entities.Material('test', 1, 'raw')
+
+    material_storage += m
+
+    assert 'test' in material_storage.raw
+    assert material_storage.raw['test'].count == 1
+
+    m2 = entities.Material('test', 2, 'raw')
+
+    material_storage += m2
+
+    assert material_storage.raw['test'].count == 3

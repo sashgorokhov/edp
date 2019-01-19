@@ -31,7 +31,6 @@ def mutate(event: Event, state: GameStateData):
 
     for func in GAME_STATE_MUTATIONS[event.name]:
         try:
-            print(event.name, func)
             func(event, state)
         except:
             logger.exception('Failed to apply mutation for event %s: %s', event.name, func)
@@ -49,13 +48,11 @@ def commander_event(event: Event, state: GameStateData):
 
 @mutation('Materials')
 def materials_event(event: Event, state: GameStateData):
-    get_materials = lambda t: {m['Name']: entities.Material(m['Name'], m['Count'])
-                               for m in event.data.get(t, [])  # type: ignore
-                               if 'Name' in m and 'Count' in m}
-
-    state.material_storage.raw = get_materials('Raw')
-    state.material_storage.encoded = get_materials('Encoded')
-    state.material_storage.manufactured = get_materials('Manufactured')
+    for category in ['Raw', 'Encoded', 'Manufactured']:
+        for material_data in event.data.get(category, []):  # type: ignore
+            if {'Name', 'Count', 'Category'}.issubset(set(material_data.keys())):
+                state.material_storage += entities.Material(material_data['Name'], material_data['Count'],
+                                                            material_data['Category'])
 
 
 @mutation('LoadGame')
@@ -186,15 +183,11 @@ def material_collected_event(event: Event, state: GameStateData):
     if not {'Category', 'Name', 'Count'}.issubset(event.data.keys()):
         return
 
-    category = event.data['Category']
-    name = event.data['Name']
-    count = event.data['Count']
+    category: str = str(event.data['Category'])
+    name: str = str(event.data['Name'])
+    count: int = int(event.data['Count'])  # type: ignore
 
-    material_category = state.material_storage[category]
-    if name in material_category:
-        material_category[name].count += count
-    elif name and count is not None:
-        material_category[name] = entities.Material(name, count)
+    state.material_storage += entities.Material(name, count, category)
 
 
 @mutation('SupercruiseEntry')

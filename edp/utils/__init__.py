@@ -24,3 +24,13 @@ def get_default_journal_path() -> Optional[Path]:  # pragma: no cover
         logger.exception('Failed to get default journal path')
         return None
     return journal_dir
+
+
+def catcherr(func):
+    def decor(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except:
+            logger.exception(f'Error calling: {func}')
+
+    return decor

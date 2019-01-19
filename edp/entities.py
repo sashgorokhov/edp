@@ -59,6 +59,16 @@ class Commander(_BaseEntity):
 class Material(_BaseEntity):
     name: str
     count: int
+    category: str
+
+    def __add__(self, other):
+        if not isinstance(other, Material):
+            raise TypeError(f"unsupported operand type(s) for +: '{type(self)}' and '{type(other)}'")
+        if self.name == other.name and self.category == other.category:
+            self.count += other.count
+        else:
+            raise TypeError(f'Materials are not the same: {self} != {other}')
+        return self
 
 
 @dataclasses.dataclass
@@ -70,14 +80,29 @@ class MaterialStorage(_BaseEntity):
     _category_map = {
         'Raw': 'raw',
         'Encoded': 'encoded',
-        'Manufactured': 'manufactured'
+        'Manufactured': 'manufactured',
+        'raw': 'raw',
+        'encoded': 'encoded',
+        'manufactured': 'manufactured'
     }
 
     def __getitem__(self, item):
         if item in self._category_map:
             return getattr(self, self._category_map[item])
         # noinspection PyUnresolvedReferences
-        return super(MaterialStorage, self).__getitem__(item)
+        raise AttributeError('__getitem__ called with wrong argument')
+
+    def __iadd__(self, material):
+        if not isinstance(material, Material):
+            raise TypeError(f"unsupported operand type(s) for +: '{type(self)}' and '{type(material)}'")
+        else:
+            category: Dict[str, Material] = self[material.category]
+
+            if material.name in category:
+                category[material.name].count += material.count
+            else:
+                category[material.name] = material
+        return self
 
 
 @dataclasses.dataclass

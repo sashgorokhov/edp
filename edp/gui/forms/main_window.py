@@ -6,7 +6,7 @@ from typing import Dict, Type, List
 from PyQt5 import QtWidgets
 
 from edp.gui.compiled.main_window import Ui_MainWindow
-from edp.gui.components import state_overview, simple_events_list
+from edp.gui.components import state_overview, simple_events_list, materials_collected
 from edp.gui.components.base import BaseMainWindowSection
 from edp.gui.forms.settings_window import SettingsWindow
 from edp.plugins import PluginManager
@@ -115,6 +115,7 @@ class MainWindow(Ui_MainWindow, QtWidgets.QMainWindow):
         self.sections_view = MainWindowSectionsView(self)
         self.sections_view.add_component(state_overview.StateOverviewComponent)
         self.sections_view.add_component(simple_events_list.SimpleEventsListComponent)
+        self.sections_view.add_component(materials_collected.MaterialsCollectedComponent)
 
         self.settings_window = SettingsWindow(plugin_manager)
 
