@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 
 import requests
 from urlpath import URL
@@ -37,7 +37,7 @@ class GithubApi:
         response.raise_for_status()
         return response.json()
 
-    def upload_asset(self, upload_url: URL, filename: Path, content_type: str, name: str,
+    def upload_asset(self, upload_url: Union[URL, str], filename: Path, content_type: str, name: str,
                      label: Optional[str] = None) -> Dict:
         params = {'name': name}
         if label is not None:
