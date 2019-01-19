@@ -1,5 +1,7 @@
+import atexit
 import pathlib
 import tempfile
+from unittest import mock
 
 import pytest
 
@@ -21,3 +23,15 @@ def random_journal_dir():
 def tempdir():
     with tempfile.TemporaryDirectory() as tempdir:
         yield pathlib.Path(tempdir)
+
+
+@pytest.fixture(autouse=True)
+def atexit_clear():
+    yield
+    atexit._clear()
+
+
+@pytest.fixture(autouse=True)
+def patch_settings_dir(tempdir):
+    with mock.patch('edp.config.SETTINGS_DIR', new=tempdir):
+        yield

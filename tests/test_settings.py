@@ -1,21 +1,8 @@
 import atexit
-from unittest import mock
 
 import pytest
 
 from edp import settings
-
-
-@pytest.fixture(autouse=True)
-def atexit_clear():
-    yield
-    atexit._clear()
-
-
-@pytest.fixture(autouse=True)
-def patch_settings_dir(tempdir):
-    with mock.patch('edp.config.SETTINGS_DIR', new=tempdir):
-        yield
 
 
 def test_settings_singleton(tempdir):
