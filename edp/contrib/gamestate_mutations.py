@@ -1,9 +1,42 @@
 # https://www.edsm.net/en/api-journal-v1#collapse-events
 import collections
+import logging
+from typing import Callable, Any, Dict, List
 
 from edp import entities
-from edp.contrib.gamestate import mutation, GameStateData
+from edp.contrib.gamestate import GameStateData
 from edp.journal import Event
+
+GAME_STATE_MUTATIONS: Dict[str, List[Callable[[Event, GameStateData], None]]] = collections.defaultdict(list)
+
+logger = logging.getLogger(__name__)
+
+
+def mutation(*events: str):
+    def decor(func: Callable[[Event, GameStateData], Any]):
+        # TODO: Verify signature
+        for event in events:
+            mutation_list = GAME_STATE_MUTATIONS[event]
+            if func in mutation_list:
+                logger.warning('Mutation for event %s already registered: %s', event, func)
+            mutation_list.append(func)
+        return func
+
+    return decor
+
+
+def mutate(event: Event, state: GameStateData):
+    if event.name not in GAME_STATE_MUTATIONS:
+        return
+
+    for func in GAME_STATE_MUTATIONS[event.name]:
+        try:
+            print(event.name, func)
+            func(event, state)
+        except:
+            logger.exception('Failed to apply mutation for event %s: %s', event.name, func)
+            logger.debug('Event: %s', event.raw)
+            logger.debug('GameStateData: %s', state)
 
 
 @mutation('Commander')

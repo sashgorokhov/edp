@@ -8,6 +8,10 @@ class _BaseEntity:
     __sentinel__ = object()
     __changed__ = False
 
+    def __init__(self, *args, **kwargs):
+        super(_BaseEntity, self).__init__(*args, **kwargs)
+        self.reset_changed()
+
     def __setattr__(self, key, value):
         if value is self.__sentinel__:
             return

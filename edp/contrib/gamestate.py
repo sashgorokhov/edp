@@ -1,6 +1,6 @@
 import logging
 import threading
-from typing import List, Dict, Callable, Any
+from typing import List, Dict
 
 import dataclasses
 import inject
@@ -13,7 +13,7 @@ from edp.signalslib import Signal
 logger = logging.getLogger(__name__)
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(init=False)
 class GameStateData(entities._BaseEntity):
     commander: entities.Commander = entities.Commander()
     material_storage: entities.MaterialStorage = entities.MaterialStorage()
@@ -36,27 +36,11 @@ class GameStateData(entities._BaseEntity):
 game_state_changed_signal = Signal('game state changed', state=GameStateData)
 game_state_set_signal = Signal('game state set', state=GameStateData)
 
-_GAME_STATE_MUTATIONS: Dict[str, Callable[[Event, GameStateData], None]] = {}
-
-
-def mutation(*events: str):
-    def decor(func: Callable[[Event, GameStateData], Any]):
-        for event in events:
-            if event in _GAME_STATE_MUTATIONS:
-                logger.warning('Mutation for event %s already registered: %s', event, _GAME_STATE_MUTATIONS[event])
-            _GAME_STATE_MUTATIONS[event] = func
-        return func
-
-    return decor
-
 
 class GameState(BasePlugin):
     journal_reader: JournalReader = inject.attr(JournalReader)
 
     def __init__(self):
-        # noinspection PyUnresolvedReferences
-        from edp.contrib import gamestate_mutations
-
         self._state = GameStateData.get_clear_data()
         self._state_lock = threading.Lock()
 
@@ -82,18 +66,11 @@ class GameState(BasePlugin):
         logger.debug('Initial state: %s', self._state)
 
     def update_state(self, event: Event) -> bool:
-        changed = False
+        from edp.contrib.gamestate_mutations import mutate
 
         with self._state_lock:
-            if event.name in _GAME_STATE_MUTATIONS:
-                try:
-                    _GAME_STATE_MUTATIONS[event.name](event, self._state)
-
-                    changed = self._state.is_changed
-                    self._state.reset_changed()
-                except:
-                    logger.exception('Failed to apply mutation: %s', _GAME_STATE_MUTATIONS[event.name])
-                    logger.debug('Event: %s', event.raw)
-                    logger.debug('GameStateData: %s', self._state)
+            mutate(event, self._state)
+            changed = self._state.is_changed
+            self._state.reset_changed()
 
         return changed
