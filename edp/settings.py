@@ -3,7 +3,7 @@ import logging
 import shelve
 from collections import UserDict
 from pathlib import Path
-from typing import Union, Optional, Dict, TypeVar
+from typing import Union, Optional, Dict, TypeVar, Any
 
 from edp import config
 from edp.utils import get_default_journal_path
@@ -20,7 +20,7 @@ def get_settings_path(name: str) -> Path:
 
 class BaseSettings(UserDict):
     __setting_per_name__: Dict[str, 'BaseSettings'] = {}
-    __attributes__ = {}
+    __attributes__: Dict[str, Any] = {}
 
     def __init__(self, path: Path):
         super(BaseSettings, self).__init__()
