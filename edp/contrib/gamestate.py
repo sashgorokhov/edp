@@ -54,6 +54,9 @@ class GameState(BasePlugin):
     journal_reader: JournalReader = inject.attr(JournalReader)
 
     def __init__(self):
+        # noinspection PyUnresolvedReferences
+        from edp.contrib import gamestate_mutations
+
         self._state = GameStateData.get_clear_data()
         self._state_lock = threading.Lock()
 
@@ -70,9 +73,6 @@ class GameState(BasePlugin):
             game_state_changed_signal.emit(state=self.state)
 
     def set_initial_state(self):
-        # noinspection PyUnresolvedReferences
-        from edp.contrib import gamestate_mutations  # noqa
-
         events: List[Event] = self.journal_reader.get_latest_file_events()
 
         for event in events:
