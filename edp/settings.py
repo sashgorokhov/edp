@@ -20,6 +20,7 @@ def get_settings_path(name: str) -> Path:
 
 class BaseSettings(UserDict):
     __setting_per_name__: Dict[str, 'BaseSettings'] = {}
+    __attributes__ = {}
 
     def __init__(self, path: Path):
         super(BaseSettings, self).__init__()
@@ -32,8 +33,11 @@ class BaseSettings(UserDict):
         for key in self.__class__.__annotations__:
             if hasattr(self.__class__, key) and key not in BaseSettings.__dict__:
                 value = getattr(self, key)
+                self.__class__.__attributes__[key] = value
                 self.data.setdefault(key, value)
                 delattr(self.__class__, key)
+            elif key in self.__class__.__attributes__:
+                self.data.setdefault(key, self.__class__.__attributes__[key])
 
         atexit.register(lambda: self._shelve.close())
 

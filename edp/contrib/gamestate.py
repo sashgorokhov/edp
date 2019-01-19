@@ -24,6 +24,10 @@ class GameStateData(entities._BaseEntity):
     location: entities.Location = entities.Location()
     credits: int = 0
 
+    @classmethod
+    def get_clear_data(cls) -> 'GameStateData':
+        return cls()
+
     def frozen(self) -> 'GameStateData':
         # TODO: Return immutable game state data
         return self
@@ -50,7 +54,7 @@ class GameState(BasePlugin):
     journal_reader: JournalReader = inject.attr(JournalReader)
 
     def __init__(self):
-        self._state = GameStateData()
+        self._state = GameStateData.get_clear_data()
         self._state_lock = threading.Lock()
 
         journal_event_signal.bind(self.on_journal_event)

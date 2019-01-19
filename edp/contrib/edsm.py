@@ -48,6 +48,11 @@ class EDSMApi:
         raise ValueError(
             f'Settings not set: api_key={"*" * len(settings.api_key or "")} commander_name={settings.commander_name}')
 
+    @classmethod
+    def from_edsm_settings(cls) -> 'EDSMApi':
+        settings = EDSMSettings.get_insance()
+        return cls.from_settings(settings)
+
     def discarded_events(self) -> List[str]:
         response = self._session.get('https://www.edsm.net/api-journal-v1/discard', timeout=self.timeout)
         return response.json()
@@ -84,7 +89,7 @@ class EDSMPlugin(BasePlugin):
         self.settings = EDSMSettings.get_insance()
 
     def is_enalbed(self):
-        return self.settings.api_key and self.settings.commander_name
+        return bool(self.settings.api_key and self.settings.commander_name)
 
     @plugins.bind_signal(game_state_set_signal, plugin_enabled=False)
     def on_game_state_set(self, state: GameStateData):

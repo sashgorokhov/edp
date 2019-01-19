@@ -5,6 +5,8 @@ from unittest import mock
 
 import pytest
 
+from edp import settings
+
 FIXTURES_DIR = pathlib.Path(__file__).parent / 'fixtures'
 FIXTURE_RANDOM_JOURNAL_DIR = FIXTURES_DIR / 'random_journal'
 
@@ -26,7 +28,7 @@ def tempdir():
 
 
 @pytest.fixture(autouse=True)
-def atexit_clear():
+def atexit_clear(tempdir):
     yield
     atexit._clear()
 
@@ -35,3 +37,12 @@ def atexit_clear():
 def patch_settings_dir(tempdir):
     with mock.patch('edp.config.SETTINGS_DIR', new=tempdir):
         yield
+
+
+@pytest.fixture(autouse=True)
+def clear_settings_instances(tempdir):
+    yield
+    for key, value in settings.BaseSettings.__setting_per_name__.items():
+        value._shelve.close()
+
+    settings.BaseSettings.__setting_per_name__.clear()
