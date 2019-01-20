@@ -17,3 +17,8 @@ SETTINGS_DIR: Path = LOCALAPPDATA_DIR / 'Elite Dangerous Platform' / 'Settings'
 
 VERSION_PATH: Path = BASE_DIR / 'VERSION'
 VERSION: str = VERSION_PATH.read_text().strip() if VERSION_PATH.exists() else '0.0.0'
+APPNAME_SHORT: str = 'EDP'
+APPNAME_LONG: str = 'EliteDangerousPlatform'
+APPNAME_FRIENDLY: str = 'Elite Dangerous Platform'
+
+USERAGENT: str = f'{APPNAME_LONG}-v{VERSION}'
