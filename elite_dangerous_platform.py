@@ -5,7 +5,7 @@ import traceback
 import inject
 
 from edp import signalslib, plugins, thread, signals, journal, config
-from edp.contrib import edsm, gamestate
+from edp.contrib import edsm, gamestate, eddn
 from edp.settings import EDPSettings
 
 logging.basicConfig(level=logging.DEBUG)
@@ -26,6 +26,7 @@ plugin_loader = plugins.PluginLoader(settings.plugin_dir)
 
 plugin_loader.add_plugin(edsm.EDSMPlugin)
 plugin_loader.add_plugin(gamestate.GameState)
+plugin_loader.add_plugin(eddn.EDDNPlugin)
 plugin_loader.load_plugins()
 
 plugin_manager = plugins.PluginManager(plugin_loader.get_plugins())

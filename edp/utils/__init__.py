@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Mapping
 
 logger = logging.getLogger(__name__)
 
@@ -34,3 +34,15 @@ def catcherr(func):
             logger.exception(f'Error calling: {func}')
 
     return decor
+
+
+def keys(d: Mapping, *keys: str, strict=False) -> Dict:
+    result = {}
+    for key in keys:
+        if key not in d:
+            if strict:
+                raise KeyError(key)
+            else:
+                continue
+        result[key] = d[key]
+    return result
