@@ -13,9 +13,10 @@ logger = logging.getLogger(__name__)
 
 
 class Event(NamedTuple):
+    # TODO: Add generic way to convert to/from datetime and timestamp str
     timestamp: datetime.datetime
     name: str
-    data: Dict[str, Optional[Any]]  # TODO: Make immutable
+    data: Dict[str, Any]  # TODO: Make immutable
     raw: str
 
 
