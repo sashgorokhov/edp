@@ -1,4 +1,5 @@
 # https://www.edsm.net/en/api-journal-v1#collapse-events
+# http://hosting.zaonce.net/community/journal/v18/Journal_Manual_v18.pdf
 import collections
 import logging
 from typing import Callable, Any, Dict, List
@@ -50,9 +51,8 @@ def commander_event(event: Event, state: GameStateData):
 def materials_event(event: Event, state: GameStateData):
     for category in ['Raw', 'Encoded', 'Manufactured']:
         for material_data in event.data.get(category, []):  # type: ignore
-            if {'Name', 'Count', 'Category'}.issubset(set(material_data.keys())):
-                state.material_storage += entities.Material(material_data['Name'], material_data['Count'],
-                                                            material_data['Category'])
+            if {'Name', 'Count'}.issubset(set(material_data.keys())):
+                state.material_storage += entities.Material(material_data['Name'], material_data['Count'], category)
 
 
 @mutation('LoadGame')
