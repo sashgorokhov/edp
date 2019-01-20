@@ -6,6 +6,8 @@ from pathlib import Path
 from types import ModuleType
 from typing import Iterator, Type, List, TypeVar, Dict, Optional, NamedTuple, Tuple, Any, Iterable, Callable
 
+from PyQt5 import QtWidgets
+
 from edp import signalslib
 from edp.thread import IntervalRunnerThread
 
@@ -66,7 +68,7 @@ class BasePlugin:
     def is_enalbed(self) -> bool:
         return True
 
-    def get_settings_widget(self):
+    def get_settings_widget(self) -> Optional[QtWidgets.QWidget]:
         raise NotImplementedError
 
 
@@ -196,7 +198,9 @@ class PluginManager:
     def get_settings_widgets(self) -> Iterator:
         for plugin in self._plugins:
             try:
-                yield plugin.get_settings_widget()
+                widget = plugin.get_settings_widget()
+                if widget is not None:
+                    yield widget
             except NotImplementedError:
                 pass
             except:
