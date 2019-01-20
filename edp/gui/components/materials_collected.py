@@ -78,7 +78,7 @@ class MaterialsCollectedComponent(BaseMainWindowSection):
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
         self.table_view.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
-        self.table_view.setFrameShape(QtWidgets.QFrame.NoFrame)
+        # self.table_view.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.table_view.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
         self.table_view.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.table_view.setAutoScroll(False)
