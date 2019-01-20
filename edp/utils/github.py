@@ -15,7 +15,7 @@ class GithubApi:
         self._session = requests.Session()
         if api_token:
             self._session.headers['Authorization'] = f'token {api_token}'
-        self._session.headers['User-Agent'] = f'EDP v{config.VERSION} https://github.com/sashgorokhov/edp'
+        self._session.headers['User-Agent'] = config.USERAGENT
 
     def get_releases(self, owner: str, repo: str) -> List[Dict]:
         response = self._session.get(BASE_URL / 'repos' / owner / repo / 'releases')

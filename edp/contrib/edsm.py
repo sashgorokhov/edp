@@ -40,6 +40,7 @@ class EDSMApi:
         self._api_key = api_key
         self._commander_name = commander_name
         self._session = requests.Session()
+        self._session.headers['User-Agent'] = config.USERAGENT
 
     @classmethod
     def from_settings(cls, settings: EDSMSettings) -> 'EDSMApi':
