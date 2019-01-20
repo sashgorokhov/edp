@@ -74,3 +74,8 @@ class GameState(BasePlugin):
             self._state.reset_changed()
 
         return changed
+
+
+def get_gamestate() -> GameStateData:
+    gamestate = inject.instance(GameState)
+    return gamestate.state
