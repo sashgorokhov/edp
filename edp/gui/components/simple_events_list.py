@@ -1,14 +1,16 @@
+import logging
+
 import inject
 from PyQt5 import QtCore, QtWidgets
 
 from edp import journal, plugins
 from edp.gui.components.base import BaseMainWindowSection
 
+logger = logging.getLogger(__name__)
+
 
 class SimpleEventsListComponent(BaseMainWindowSection):
     name = 'Simple Events List'
-
-    journal_event_signal = QtCore.pyqtSignal(journal.Event)
 
     plugin_proxy: plugins.PluginProxy = inject.attr(plugins.PluginProxy)
 
@@ -28,11 +30,7 @@ class SimpleEventsListComponent(BaseMainWindowSection):
         self.list_widget.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
         self.layout().addWidget(self.list_widget)
 
-        self.journal_event_signal.connect(self.on_journal_event_signal)
-        journal.journal_event_signal.bind_nonstrict(lambda event: self.journal_event_signal.emit(event))
-
-    @QtCore.pyqtSlot(journal.Event)
-    def on_journal_event_signal(self, event: journal.Event):
+    def on_journal_event(self, event: journal.Event):
         self.list_widget.insertItem(0, event.name)
         count = self.list_widget.count()
         if count > 10:

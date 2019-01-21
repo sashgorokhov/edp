@@ -136,7 +136,7 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
             'OrbitalInclination', 'Periapsis', 'OrbitalPeriod'
         ]
         message = JournalMessageSchema(
-            timestamp=event.timestamp.isoformat() + 'Z',
+            timestamp=event.timestamp.isoformat(timespec='seconds') + 'Z',
             event=event.name,
             StarSystem=event.data.get('StarSystem', state.location.system),
             StarPos=event.data.get('StarPos', state.location.pos),

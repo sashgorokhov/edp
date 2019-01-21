@@ -1,14 +1,13 @@
 import datetime
 import json
 import pathlib
-import tempfile
 import time
 from typing import List, Union, Dict
 from unittest import mock
 
 import pytest
 
-from edp import journal, signalslib
+from edp import journal
 from edp.journal import Event
 
 TEST_EVENT_1 = ('{"timestamp": "2018-06-07T08:09:10Z", "event": "test 1", "foo": "bar"}',
@@ -239,3 +238,43 @@ def test_journal_live_event_skip_existing_file_content(journal_live_event_thread
         time.sleep(0.5)
 
     journal_event_signal_mock.emit.assert_called_once_with(event=TEST_EVENT_2[1])
+
+
+def test_get_file_event_path_not_exists(tempdir, journal_reader):
+    assert journal_reader._get_file_event(tempdir / 'foo.json') is None
+
+
+def test_get_file_event_bad_content(tempdir, journal_reader):
+    path = tempdir / 'test.json'
+    path.write_text('{foo: bar}')
+
+    assert journal_reader._get_file_event(path) is None
+
+
+def test_get_file_event_parsed(tempdir, journal_reader):
+    path = tempdir / 'test.json'
+    path.write_text(
+        '{"event": "test", "timestamp": "%s"}' % (datetime.datetime.now().isoformat(timespec='seconds') + 'Z'))
+
+    event = journal_reader._get_file_event(path)
+    assert event is not None
+    assert event.name == 'test'
+
+
+def test_filter_file_event_first_time(journal_reader):
+    event = Event(datetime.datetime.now(), 'test', {}, '{}')
+    assert journal_reader._filter_file_event(event) is None
+
+
+def test_filter_file_event_second_time_same_dt(journal_reader):
+    event = Event(datetime.datetime.now(), 'test', {}, '{}')
+    assert journal_reader._filter_file_event(event) is None
+    assert journal_reader._filter_file_event(event) is None
+
+
+def test_filter_file_event_second_time_newer(journal_reader):
+    event = Event(datetime.datetime.now(), 'test', {}, '{}')
+    assert journal_reader._filter_file_event(event) is None
+
+    event2 = Event(datetime.datetime.now() + datetime.timedelta(minutes=1), 'test', {}, '{}')
+    assert journal_reader._filter_file_event(event2) is event2

@@ -105,7 +105,7 @@ class EDSMPlugin(BasePlugin):
     @property  # type: ignore
     @cache
     def discarded_events(self) -> List[str]:
-        return self.api.discarded_events()
+        return self.api.discarded_events() + ['Status']
 
     @plugins.bind_signal(journal_event_signal)
     def journal_event(self, event: Event):

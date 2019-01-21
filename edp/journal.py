@@ -52,6 +52,7 @@ class JournalReader:
         self._latest_file_events: List['Event'] = []
         self._latest_file: Optional[Path] = None
         self._lock = threading.Lock()
+        self._file_event_timestamp: Dict[str, datetime.datetime] = {}
 
     def get_latest_file(self) -> Optional[Path]:
         files_list = sorted(self._base_dir.glob('Journal.*.log'), key=lambda path: os.path.getmtime(path))
@@ -61,7 +62,7 @@ class JournalReader:
     def read_all_file_events(path: Path) -> Iterator['Event']:
         try:
             # noinspection PyTypeChecker
-            with open(path, 'r', encoding='utf-8') as f:
+            with path.open('r', encoding='utf-8') as f:
                 for line in f.readlines():
                     try:
                         yield process_event(line)
@@ -71,7 +72,7 @@ class JournalReader:
         except:
             logger.exception('Failed to read events from file %s', path)
 
-    def get_latest_file_events(self) -> List['Event']:
+    def get_latest_file_events(self) -> List[Event]:
         latest_file = self.get_latest_file()
 
         if latest_file is None:
@@ -87,6 +88,51 @@ class JournalReader:
 
         return self._latest_file_events
 
+    def _get_file_event(self, path: Path) -> Optional[Event]:
+        if not path.exists():
+            return None
+
+        with path.open('r', encoding='utf-8') as f:
+            try:
+                event_line = f.read().strip()
+                return process_event(event_line)
+            except:
+                logger.exception(f'Failed to read status from {path}')
+
+        return None
+
+    def _filter_file_event(self, event: Event) -> Optional[Event]:
+        if event.name not in self._file_event_timestamp:
+            self._file_event_timestamp[event.name] = event.timestamp
+            return None
+
+        if event.timestamp > self._file_event_timestamp[event.name]:
+            self._file_event_timestamp[event.name] = event.timestamp
+            return event
+
+        return None
+
+    def _get_file_event_filtered(self, path: Path) -> Optional[Event]:
+        event = self._get_file_event(path)
+        if event:
+            event = self._filter_file_event(event)
+        return event
+
+    def get_status_file_event(self) -> Optional[Event]:
+        return self._get_file_event_filtered(self._base_dir / 'Status.json')
+
+    def get_cargo_file_event(self) -> Optional[Event]:
+        return self._get_file_event_filtered(self._base_dir / 'Cargo.json')
+
+    def get_market_file_event(self) -> Optional[Event]:
+        return self._get_file_event_filtered(self._base_dir / 'Market.json')
+
+    def get_modules_info_file_event(self) -> Optional[Event]:
+        return self._get_file_event_filtered(self._base_dir / 'ModulesInfo.json')
+
+    def get_outfitting_file_event(self) -> Optional[Event]:
+        return self._get_file_event_filtered(self._base_dir / 'Outfitting.json')
+
 
 class JournalLiveEventThread(StoppableThread):
     interval = 1
@@ -96,34 +142,53 @@ class JournalLiveEventThread(StoppableThread):
 
         self._journal_reader = journal_reader
 
+        self._current_file: Optional[Path] = None
+        self._last_file: Optional[Path] = None
+        self._last_pos = 0
+
     def run(self):
-        current_file: Path = None
-        last_file: Path = self._journal_reader.get_latest_file()
-        last_pos = 0
+        self._last_file = self._journal_reader.get_latest_file()
 
         while not self.is_stopped:
-            latest_file = self._journal_reader.get_latest_file()
-
-            if not latest_file:
-                logger.debug('No journal files found')
+            try:
+                self.read_journal()
+                self.read_status_files()
+            except:
+                logger.exception('Error reading journal')
+            finally:
                 self.sleep(self.interval)
-                continue
 
-            if latest_file != current_file:
-                logger.debug('Changing current journal to %s', latest_file.name)
+    def read_status_files(self):
+        events: List[Optional[Event]] = [
+            self._journal_reader.get_status_file_event(),
+            self._journal_reader.get_cargo_file_event(),
+            self._journal_reader.get_market_file_event(),
+            self._journal_reader.get_modules_info_file_event(),
+            self._journal_reader.get_outfitting_file_event()
+        ]
+        for event in filter(None, events):
+            journal_event_signal.emit(event=event)
 
-                if current_file is None and last_file is not None:
-                    logger.debug('Startup skipping existing journal content')
-                    last_pos = get_file_end_pos(latest_file)
-                else:
-                    last_pos = 0
+    def read_journal(self):
+        latest_file = self._journal_reader.get_latest_file()
 
-                current_file = latest_file
+        if not latest_file:
+            logger.debug('No journal files found')
+            return
 
-            last_pos = self.read_file(current_file, last_pos)
-            last_file = latest_file
+        if latest_file != self._current_file:
+            logger.debug('Changing current journal to %s', latest_file.name)
 
-            self.sleep(self.interval)
+            if self._current_file is None and self._last_file is not None:
+                logger.debug('Startup skipping existing journal content')
+                self._last_pos = get_file_end_pos(latest_file)
+            else:
+                self._last_pos = 0
+
+            self._current_file = latest_file
+
+        self._last_pos = self.read_file(self._current_file, self._last_pos)
+        self._last_file = latest_file
 
     def read_file(self, filename: Path, pos: int = 0) -> int:
         num_events = 0
