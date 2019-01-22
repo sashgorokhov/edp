@@ -76,7 +76,7 @@ def get_module_from_path(path: Path) -> ModuleType:
     spec = importlib.util.spec_from_file_location(path.stem, str(path))
     module = importlib.util.module_from_spec(spec)
     if spec.loader:
-        spec.loader.exec_module(module)
+        spec.loader.exec_module(module)  # type: ignore
     else:
         raise TypeError('Cant execute module')
     return module
