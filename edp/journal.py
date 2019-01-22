@@ -133,6 +133,15 @@ class JournalReader:
     def get_outfitting_file_event(self) -> Optional[Event]:
         return self._get_file_event_filtered(self._base_dir / 'Outfitting.json')
 
+    def get_game_version_info(self) -> Optional[str]:
+        events = self.get_latest_file_events()
+        for event in events:
+            if event.name == 'Fileheader':
+                gameversion = event.data.get('gameversion', 'unknown')
+                build = event.data.get('build', 'unkown')
+                return f'{gameversion} {build}'
+        return None
+
 
 class JournalLiveEventThread(StoppableThread):
     interval = 1

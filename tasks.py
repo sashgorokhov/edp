@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import shutil
@@ -22,10 +23,12 @@ TARGET: Path = BASE_DIR / 'elite_dangerous_platform.py'
 DIST_DIR: Path = BASE_DIR / 'dist' / TARGET.stem
 DIST_ZIP: Path = DIST_DIR.with_suffix('.zip')
 EXE_FILE: Path = DIST_DIR / TARGET.with_suffix('.exe').name
+DIST_DATA_FILE: Path = DIST_DIR / 'dist.json'
 
 LOCAL_TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
 GITHUB_API_TOKEN: Optional[str] = os.environ.get('GITHUB_API_TOKEN')
+SENTRY_DSN: Optional[str] = os.environ.get('SENTRY_DSN')
 
 
 @invoke.task
@@ -108,6 +111,11 @@ def build(c):
 
     c.run(f'pyinstaller -w -y --clean --log-level WARN --upx-dir {UPX_DIR} {TARGET}')
     shutil.copy(str(BASE_DIR / 'VERSION'), str(DIST_DIR / 'VERSION'))
+    if not SENTRY_DSN:
+        print('SENTRY_DSN is not set!')
+    DIST_DATA_FILE.write_text(json.dumps({
+        'SENTRY_DSN': SENTRY_DSN
+    }))
 
 
 @invoke.task(build)

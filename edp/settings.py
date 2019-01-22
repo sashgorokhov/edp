@@ -1,6 +1,7 @@
 import atexit
 import logging
 import shelve
+import uuid
 from collections import UserDict
 from pathlib import Path
 from typing import Union, Optional, Dict, TypeVar, Any
@@ -63,7 +64,9 @@ class BaseSettings(UserDict):
 
 
 class EDPSettings(BaseSettings):
+    user_id: str = str(uuid.uuid4())
     plugin_dir: Path = config.BASE_DIR / 'plugins'
+    enable_error_reports: bool = True
 
     @property
     def journal_dir(self) -> Path:

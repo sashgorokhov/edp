@@ -3,3 +3,4 @@ inject
 dataclasses
 PyQt5
 urlpath
+sentry-sdk

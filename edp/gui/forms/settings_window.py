@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional, Any, Callable, Union, Type, Iterator
 
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 
 from edp.plugins import PluginManager
 from edp.settings import EDPSettings
@@ -76,6 +76,19 @@ class TabGeneral(VLayoutTab):
 
         yield self.link_directory_dialog(settings, 'plugin_dir', 'Plugin directory')
         yield self.link_directory_dialog(settings, 'journal_dir', 'Journal directory')
+
+        layout = QtWidgets.QVBoxLayout()
+        checkbox = QtWidgets.QCheckBox('Enable automatic error reports')
+        checkbox.setChecked(settings.enable_error_reports)
+        checkbox.stateChanged.connect(
+            lambda state: settings.__setattr__('enable_error_reports', QtCore.Qt.Checked == state))
+        layout.addWidget(checkbox)
+        label = QtWidgets.QLabel('App restart required')
+        font: QtGui.QFont = label.font()
+        font.setPointSize(7)
+        label.setFont(font)
+        layout.addWidget(label)
+        yield layout
 
 
 class SettingsWindow(QtWidgets.QTabWidget):

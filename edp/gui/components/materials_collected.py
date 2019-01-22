@@ -25,6 +25,10 @@ class MaterialsStorageModel(QtCore.QAbstractTableModel):
         self.endResetModel()
 
     def modelReset(self):
+        try:
+            raise ValueError()
+        except:
+            logger.exception('Error in model reset')
         self.beginResetModel()
         self.materials.clear()
         self.endResetModel()
