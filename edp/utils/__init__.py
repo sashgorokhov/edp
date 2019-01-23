@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Optional, Dict, Mapping
+from typing import Optional, Dict, Mapping, Sequence, Iterator, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -46,3 +46,13 @@ def keys(d: Mapping, *keys: str, strict=False) -> Dict:
                 continue
         result[key] = d[key]
     return result
+
+
+T = TypeVar('T')
+
+
+def chunked(l: Sequence[T], size: int = 5) -> Iterator[Sequence[T]]:
+    indexes = list(range(len(l)))[::5]
+
+    for start in indexes:
+        yield l[start: start + size]

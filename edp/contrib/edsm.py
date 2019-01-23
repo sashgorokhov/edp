@@ -6,7 +6,7 @@ from typing import List, Optional, Callable, TypeVar
 
 import requests
 
-from edp import plugins, config
+from edp import plugins, config, utils
 from edp.contrib.gamestate import GameState, GameStateData, game_state_set_signal
 from edp.gui.forms.settings_window import VLayoutTab
 from edp.journal import Event, journal_event_signal
@@ -125,7 +125,12 @@ class EDSMPlugin(BasePlugin):
 
         patched_events = [self.patch_event(event.raw, self.gamestate.state) for event in events]
 
-        self.api.journal_event(*patched_events)
+        for chunk in utils.chunked(patched_events, size=5):
+            try:
+                self.api.journal_event(*chunk)
+            except requests.exceptions.ConnectionError:
+                logger.error(f'ConnectionError while sending {len(chunk)} to EDSM')
+                logger.error(chunk)
 
     def patch_event(self, event_line: str, state: GameStateData) -> str:
         event: dict = json.loads(event_line)

@@ -100,7 +100,6 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
         return event.name in {'Docked', 'FSDJump', 'Scan', 'Location'}
 
     def process_buffered_events(self, events: List[journal.Event]):
-        logger.debug('Processing buffered events to EDDN')
         gamestate = get_gamestate()
         for event in events:
             try:
@@ -111,39 +110,23 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
                 logger.exception(f'Failed to process event: {event.raw}')
 
     def process_event(self, event: journal.Event, state: GameStateData) -> EDDNSchema:
-        optional_fields = [
-            # TODO: Check for typos here
-            # Docked
-            'StationName', 'MarketID', 'StationType', 'StationFaction',
-            'FactionState', 'StationAllegiance', 'StationEconomy', 'StationEconomies',
-            'StationGovernment', 'DistFromStarLS', 'StationServices',
-            # Location, FSDJump
-            'Body', 'BodyID', 'BodyType', 'SystemFaction', 'SystemAllegiance',
-            'SystemEconomy', 'SystemSecondEconomy', 'SystemGovernment',
-            'SystemSecurity', 'Population',
-            # Scan
-            # star
-            'ScanType', 'Bodyname', 'BodyID', 'DistanceFromArrivalLS',
-            'StarType', 'StellarMass', 'Radius', 'AbsoluteMagnitude',
-            'RotationPeriod', 'SurfaceTemperature', 'Luminosity',
-            'Age_MY', 'Rings',
-            # planet/moon
-            'Parents', 'TidalLock', 'TerraformState',
-            'PlanetClass', 'Atmosphere', 'AtmosphereType', 'AtmosphereComposition',
-            'Volcanism', 'SurfaceGravity', 'SurfaceTemperature', 'SurfacePressure',
-            'Landable', 'Materials', 'Composition', 'ReserveLevel',
-            'RotationPeriod', 'AxialTilt', 'SemiMajorAxis', 'Eccentricity',
-            'OrbitalInclination', 'Periapsis', 'OrbitalPeriod'
-        ]
+        strip_localized = lambda d: utils.keys(d, *(k for k in d.keys() if not k.endswith('_Localised')))
+        drop_keys = lambda d, *keys: {k: v for k, v in d.items() if k not in keys}
+
+        optional = drop_keys(event.data, "ActiveFine", "CockpitBreach", "BoostUsed",
+                             "FuelLevel", "FuelUsed", "JumpDist", "Latitude", "Longitude", "Wanted")
+        optional = strip_localized(optional)
+        if 'StationEconomies' in optional:
+            optional['StationEconomies'] = [strip_localized(d) for d in optional['StationEconomies']]
+
         message = JournalMessageSchema(
             timestamp=event.timestamp.isoformat(timespec='seconds') + 'Z',
             event=event.name,
             StarSystem=event.data.get('StarSystem', state.location.system),
             StarPos=event.data.get('StarPos', state.location.pos),
             SystemAddress=event.data.get('SystemAddress', state.location.address),
-            Factions=[utils.keys(f, 'Name', 'FactionState', 'Government', 'Influence', 'Allegiance', 'Happiness')
-                      for f in event.data.get('Factions', [])],
-            optional=utils.keys(event.data, *optional_fields)
+            Factions=[strip_localized(f) for f in event.data.get('Factions', [])],
+            optional=optional
         )
 
         payload_dataclass = EDDNSchema(
