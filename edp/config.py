@@ -30,6 +30,7 @@ APPNAME_FRIENDLY: str = 'Elite Dangerous Platform'
 USERAGENT: str = f'{APPNAME_LONG}-v{VERSION}'
 
 SENTRY_DSN: Optional[str] = None
+DISCORD_CLIENT_ID: Optional[str] = '537322842291961857'
 
 # Some simple secret data injection
 if FROZEN and DIST_FILE.exists():

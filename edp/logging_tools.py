@@ -21,6 +21,8 @@ def configure(enable_sentry: bool = True):
         )
 
 
+DEFAULT_HANDLERS = ['file'] + (['console'] if not config.FROZEN else [])
+
 LOGGING_CONFIG = {
     'version': 1,
     'disable_existing_loggers': True,
@@ -50,9 +52,14 @@ LOGGING_CONFIG = {
     },
     'loggers': {
         'edp': {
-            'handlers': ['file'] + (['console'] if not config.FROZEN else []),
+            'handlers': DEFAULT_HANDLERS,
             'level': 'DEBUG',
             'propagate': False,
+        },
+        'edp.utils.discord_rpc': {
+            'handlers': DEFAULT_HANDLERS,
+            'level': 'ERROR',
+            'propagate': False
         }
     },
     'root': {

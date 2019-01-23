@@ -7,6 +7,8 @@ import traceback
 import inject
 import sentry_sdk
 
+from edp.contrib import discord_rich_presence
+
 
 def main():
     from PyQt5.QtWidgets import QApplication
@@ -42,6 +44,7 @@ def main():
         plugin_loader.add_plugin(edsm.EDSMPlugin)
         plugin_loader.add_plugin(gamestate.GameState)
         plugin_loader.add_plugin(eddn.EDDNPlugin)
+        plugin_loader.add_plugin(discord_rich_presence.DiscordRichPresencePlugin)
         plugin_loader.load_plugins()
 
         plugin_manager = plugins.PluginManager(plugin_loader.get_plugins())
