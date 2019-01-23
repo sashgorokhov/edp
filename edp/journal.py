@@ -96,6 +96,8 @@ class JournalReader:
             try:
                 event_line = f.read().strip()
                 return process_event(event_line)
+            except json.decoder.JSONDecodeError:
+                logger.debug(f'JSONDecodeError while reading {path.name}')
             except:
                 logger.exception(f'Failed to read status from {path}')
 
