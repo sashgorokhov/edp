@@ -192,8 +192,11 @@ class PluginManager:
             plugin_enabled: bool = marked_method.mark.options['plugin_enabled']
 
             for signal in signals:
-                callback = self._callback_wrapper(marked_method.method, marked_method.plugin, plugin_enabled)
-                signal.bind(callback)
+                try:
+                    callback = self._callback_wrapper(marked_method.method, marked_method.plugin, plugin_enabled)
+                    signal.bind(callback)
+                except:
+                    logger.exception(f'Failed to bind plugin signal "{signal.name}" {marked_method.method}')
 
     def get_settings_widgets(self) -> Iterator:
         for plugin in self._plugins:
