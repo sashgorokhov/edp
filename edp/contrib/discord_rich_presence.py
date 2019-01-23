@@ -4,6 +4,7 @@ import logging
 from typing import Optional, Dict
 
 import dataclasses
+from PyQt5 import QtWidgets
 
 from edp import plugins, config
 from edp.contrib import gamestate
@@ -23,7 +24,21 @@ class DRPSettingsTabWidget(VLayoutTab):
     friendly_name = 'Discord Rich Presence'
 
     def get_settings_links(self):
-        yield from []
+        settings = DRPSettings.get_insance()
+
+        layout = QtWidgets.QVBoxLayout()
+        checkbox = QtWidgets.QCheckBox('Enabled')
+        checkbox.setChecked(settings.enabled)
+        checkbox.stateChanged.connect(lambda state: settings.__setattr__('enabled', state == 2))
+        layout.addWidget(checkbox)
+        yield layout
+
+        layout = QtWidgets.QVBoxLayout()
+        checkbox = QtWidgets.QCheckBox('Show location info')
+        checkbox.setChecked(settings.enabled)
+        checkbox.stateChanged.connect(lambda state: settings.__setattr__('show_location', state == 2))
+        layout.addWidget(checkbox)
+        yield layout
 
 
 @dataclasses.dataclass()
