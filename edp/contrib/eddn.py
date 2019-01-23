@@ -115,7 +115,7 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
             # TODO: Check for typos here
             # Docked
             'StationName', 'MarketID', 'StationType', 'StationFaction',
-            'FactionState', 'StationAllegiance', 'StationEconomy',
+            'FactionState', 'StationAllegiance', 'StationEconomy', 'StationEconomies',
             'StationGovernment', 'DistFromStarLS', 'StationServices',
             # Location, FSDJump
             'Body', 'BodyID', 'BodyType', 'SystemFaction', 'SystemAllegiance',
@@ -141,7 +141,7 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
             StarSystem=event.data.get('StarSystem', state.location.system),
             StarPos=event.data.get('StarPos', state.location.pos),
             SystemAddress=event.data.get('SystemAddress', state.location.address),
-            Factions=[utils.keys(f, 'Name', 'FactionState', 'Government', 'Influence', 'Allegiance')
+            Factions=[utils.keys(f, 'Name', 'FactionState', 'Government', 'Influence', 'Allegiance', 'Happiness')
                       for f in event.data.get('Factions', [])],
             optional=utils.keys(event.data, *optional_fields)
         )
