@@ -128,7 +128,7 @@ def test_push_events_empty_buffer(mock_api, plugin):
     '{}',
     '{"foo": "bar"}',
 ])
-def test_path_event(plugin, event_str):
+def test_patch_event(plugin, event_str):
     state = gamestate.GameStateData.get_clear_data()
     state.location.address = 'test_address'
     state.location.system = 'test_system'
@@ -138,8 +138,7 @@ def test_path_event(plugin, event_str):
     state.ship.id = 1
 
     existed_event_data = json.loads(event_str)
-    patched_event_str = plugin.patch_event(event_str, state)
-    patched_event_data = json.loads(patched_event_str)
+    patched_event_data = plugin.patch_event(event_str, state)
 
     assert utils.is_dict_subset(patched_event_data, existed_event_data)
     assert {'_systemAddress', '_systemName', '_systemCoordinates', '_marketId', '_stationName', '_shipId'} \
@@ -168,13 +167,12 @@ def test_push_events_event_patched_with_state(mock_api, plugin):
     plugin.push_events()
 
     mock_api.journal_event.assert_called_once()
-    patched_events_strs = mock_api.journal_event.call_args[0]
-    assert len(patched_events_strs) == len(events)
+    patched_events = mock_api.journal_event.call_args[0]
+    assert len(patched_events) == len(events)
 
-    for patched_event_str in patched_events_strs:
-        patched_event_data = json.loads(patched_event_str)
+    for patched_event in patched_events:
         assert {'_systemAddress', '_systemName', '_systemCoordinates', '_marketId', '_stationName', '_shipId'} \
-            .issubset(set(patched_event_data.keys()))
+            .issubset(set(patched_event.keys()))
 
 
 def test_create_api_from_settings_not_enough():

@@ -58,7 +58,7 @@ class EDSMApi:
         response = self._session.get('https://www.edsm.net/api-journal-v1/discard', timeout=self.timeout)
         return response.json()
 
-    def journal_event(self, *events: str):
+    def journal_event(self, *events: dict):
         data = {
             'commanderName': self._commander_name,
             'apiKey': self._api_key,
@@ -68,8 +68,15 @@ class EDSMApi:
         }
         response = self._session.post('https://www.edsm.net/api-journal-v1', json=data, timeout=15)
         logger.debug(f'Sent {len(events)} events, status code is {response.status_code}')
+        if response.status_code < 300:
+            response_data = response.json()
+            for event_status, event_data in zip(response_data['events'], events):
+                if event_status['msgnum'] >= 200:
+                    logger.warning(f'EDSM error: {event_status["msgnum"]} {event_status["msg"]}: {event_data}')
+
         if response.status_code >= 400:
             logger.error(response.text)
+            logger.error(events)
 
 
 T = TypeVar('T')
@@ -105,7 +112,7 @@ class EDSMPlugin(BasePlugin):
     @property  # type: ignore
     @cache
     def discarded_events(self) -> List[str]:
-        return self.api.discarded_events() + ['Status']
+        return self.api.discarded_events()
 
     @plugins.bind_signal(journal_event_signal)
     def journal_event(self, event: Event):
@@ -129,10 +136,16 @@ class EDSMPlugin(BasePlugin):
             try:
                 self.api.journal_event(*chunk)
             except requests.exceptions.ConnectionError:
-                logger.error(f'ConnectionError while sending {len(chunk)} to EDSM')
-                logger.error(chunk)
+                logger.warning(f'ConnectionError while sending {len(chunk)} events to EDSM')
+                logger.warning('Trying one more time...')
 
-    def patch_event(self, event_line: str, state: GameStateData) -> str:
+                try:
+                    self.api.journal_event(*chunk)
+                except requests.exceptions.ConnectionError:
+                    logger.error('ConnectionError second time, give up')
+                    logger.error(chunk)
+
+    def patch_event(self, event_line: str, state: GameStateData) -> dict:
         event: dict = json.loads(event_line)
 
         event['_systemAddress'] = state.location.address
@@ -142,7 +155,7 @@ class EDSMPlugin(BasePlugin):
         event['_stationName'] = state.location.station.name
         event['_shipId'] = state.ship.id
 
-        return json.dumps(event)
+        return event
 
     def get_settings_widget(self):
         return EDSMSettingsTabWidget()
