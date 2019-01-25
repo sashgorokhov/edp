@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from collections import OrderedDict
 
 from PyQt5 import QtWidgets, QtCore
 
@@ -10,25 +10,22 @@ logger = logging.getLogger(__name__)
 
 
 class MaterialsStorageModel(QtCore.QAbstractTableModel):
+    maximum_length = 10
+
     def __init__(self, *args, **kwargs):
         super(MaterialsStorageModel, self).__init__(*args, **kwargs)
-        self.materials: List[entities.Material] = []
+        self.materials: OrderedDict[str, entities.Material] = OrderedDict()
 
     def add_material(self, material: entities.Material):
         self.beginResetModel()
-        if material in self.materials:
-            m = self.materials.pop(self.materials.index(material))
-            m += material
-            self.materials.insert(0, m)
+        if material.name in self.materials:
+            self.materials[material.name] += material
+            self.materials.move_to_end(material.name, last=True)
         else:
-            self.materials.insert(0, material)
+            self.materials[material.name] = material
         self.endResetModel()
 
     def modelReset(self):
-        try:
-            raise ValueError()
-        except:
-            logger.exception('Error in model reset')
         self.beginResetModel()
         self.materials.clear()
         self.endResetModel()
@@ -39,7 +36,7 @@ class MaterialsStorageModel(QtCore.QAbstractTableModel):
             return
         if index.row() > len(self.materials) or index.row() < 0:
             return
-        material = self.materials[index.row()]
+        material = self.materials[list(reversed(list(self.materials.keys())))[index.row()]]
         if role == QtCore.Qt.DisplayRole:
             if index.column() == 0:
                 return material.name
@@ -48,7 +45,7 @@ class MaterialsStorageModel(QtCore.QAbstractTableModel):
 
     def rowCount(self, parent=None, *args, **kwargs):
         count = len(self.materials)
-        return count if count <= 10 else 10
+        return count if count <= self.maximum_length else self.maximum_length
 
     def columnCount(self, parent=None, *args, **kwargs):
         return 2
