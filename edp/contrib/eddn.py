@@ -110,7 +110,7 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
                 logger.exception(f'Failed to process event: {event.raw}')
 
     def process_event(self, event: journal.Event, state: GameStateData) -> EDDNSchema:
-        strip_localized = lambda d: utils.keys(d, *(k for k in d.keys() if not k.endswith('_Localised')))
+        strip_localized = lambda d: utils.subset(d, *(k for k in d.keys() if not k.endswith('_Localised')))
         drop_keys = lambda d, *keys: {k: v for k, v in d.items() if k not in keys}
 
         optional = drop_keys(event.data, "ActiveFine", "CockpitBreach", "BoostUsed",
