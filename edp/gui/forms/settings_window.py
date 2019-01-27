@@ -13,6 +13,17 @@ class BaseTab(QtWidgets.QWidget):
     def get_friendly_name(self):
         return self.friendly_name or self.__class__.__name__
 
+    def link_checkbox(self, settings, field, label=None) -> QtWidgets.QHBoxLayout:
+        label = label or field
+        layout = QtWidgets.QHBoxLayout()
+        checkbox = QtWidgets.QCheckBox()
+        checkbox.setText(label)
+        checkbox.stateChanged.connect(lambda state: settings.__setattr__(field, QtCore.Qt.Checked == state))
+        checkbox.setChecked(getattr(settings, field))
+        layout.addWidget(checkbox)
+        layout.addStretch(1)
+        return layout
+
     def link_line_edit(self, settings, field, label=None,
                        settype: Union[Callable[[str], Any], Type] = str) -> QtWidgets.QHBoxLayout:
         label = label or field
