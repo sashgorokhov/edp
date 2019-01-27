@@ -78,6 +78,7 @@ class DiscordRichPresencePlugin(plugins.BasePlugin):
         else:
             location = f'Somewhere in space'
 
+        # TODO: Show game mode
         if state.location.docked:
             drp_state = DRPState(f'Docked at {state.location.station.name}', location)
         elif state.location.supercruise:
