@@ -34,8 +34,8 @@ def test_catcherr():
     ({1: 2, 2: 3}, [1, 2, 4], {1: 2, 2: 3}),
     ({1: 2, 2: 3, 4: 5}, [1, 2], {1: 2, 2: 3}),
 ])
-def test_keys(d, k, result):
-    assert utils.keys(d, *k) == result
+def test_subset(d, k, result):
+    assert utils.subset(d, *k) == result
 
 
 @pytest.mark.parametrize(('d', 'k', 'result', 'raises'), [
@@ -44,9 +44,19 @@ def test_keys(d, k, result):
     ({1: 2}, [1], {1: 2}, False),
     ({1: 2}, [1, 2], {1: 2}, True),
 ])
-def test_keys_strict(d, k, result, raises):
+def test_subset_strict(d, k, result, raises):
     if not raises:
-        assert utils.keys(d, *k, strict=True) == result
+        assert utils.subset(d, *k, strict=True) == result
     else:
         with pytest.raises(KeyError):
-            assert utils.keys(d, *k, strict=True)
+            assert utils.subset(d, *k, strict=True)
+
+
+@pytest.mark.parametrize(('d', 'keys', 'result'), [
+    ({}, tuple(), True),
+    ({1: 2}, tuple(), True),
+    ({}, (1,), False),
+    ({1: 2}, (1,), True),
+])
+def test_has_keys(d, keys, result):
+    assert utils.has_keys(d, *keys) == result

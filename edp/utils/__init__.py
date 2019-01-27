@@ -36,7 +36,7 @@ def catcherr(func):
     return decor
 
 
-def keys(d: Mapping, *keys: str, strict=False) -> Dict:
+def subset(d: Mapping, *keys: str, strict=False) -> Dict:
     result = {}
     for key in keys:
         if key not in d:
@@ -56,3 +56,7 @@ def chunked(l: Sequence[T], size: int = 5) -> Iterator[Sequence[T]]:
 
     for start in indexes:
         yield l[start: start + size]
+
+
+def has_keys(d: dict, *keys: str) -> bool:
+    return set(keys).issubset(set(d.keys()))
