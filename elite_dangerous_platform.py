@@ -36,7 +36,8 @@ def main():
 
         game_version = journal_reader.get_game_version_info()
         if game_version:
-            scope.set_extra('game_version', game_version)
+            scope.set_tag('game_version', game_version.version)
+            scope.set_extra('game_build', game_version.build)
 
         logger.info('Loading plugins')
         plugin_loader = plugins.PluginLoader(settings.plugin_dir)

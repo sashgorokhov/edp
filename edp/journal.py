@@ -20,6 +20,11 @@ class Event(NamedTuple):
     raw: str
 
 
+class VersionInfo(NamedTuple):
+    version: str
+    build: str
+
+
 journal_event_signal = Signal('journal event', event=Event)
 
 
@@ -135,13 +140,13 @@ class JournalReader:
     def get_outfitting_file_event(self) -> Optional[Event]:
         return self._get_file_event_filtered(self._base_dir / 'Outfitting.json')
 
-    def get_game_version_info(self) -> Optional[str]:
+    def get_game_version_info(self) -> Optional[VersionInfo]:
         events = self.get_latest_file_events()
         for event in events:
             if event.name == 'Fileheader':
                 gameversion = event.data.get('gameversion', 'unknown')
                 build = event.data.get('build', 'unkown')
-                return f'{gameversion} {build}'
+                return VersionInfo(gameversion, build)
         return None
 
 
