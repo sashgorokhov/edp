@@ -112,6 +112,9 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
     def process_event(self, event: journal.Event, state: GameStateData) -> EDDNSchema:
         strip_localized = lambda d: utils.subset(d, *(k for k in d.keys() if not k.endswith('_Localised')))
         drop_keys = lambda d, *keys: {k: v for k, v in d.items() if k not in keys}
+        filter_faction = lambda d: strip_localized(drop_keys(
+            d, 'HappiestSystem', 'HomeSystem', 'MyReputation', 'SquadronFaction')
+        )
 
         optional = drop_keys(event.data, "ActiveFine", "CockpitBreach", "BoostUsed",
                              "FuelLevel", "FuelUsed", "JumpDist", "Latitude", "Longitude", "Wanted")
@@ -125,7 +128,7 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
             StarSystem=event.data.get('StarSystem', state.location.system),
             StarPos=event.data.get('StarPos', state.location.pos),
             SystemAddress=event.data.get('SystemAddress', state.location.address),
-            Factions=[strip_localized(f) for f in event.data.get('Factions', [])],
+            Factions=[filter_faction(f) for f in event.data.get('Factions', [])],
             optional=optional
         )
 
