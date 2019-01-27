@@ -185,7 +185,7 @@ def material_collected_event(event: Event, state: GameStateData):
 
     category: str = str(event.data['Category'])
     name: str = str(event.data['Name'])
-    count: int = int(event.data['Count'])  # type: ignore
+    count = int(event.data['Count'])  # type: ignore
 
     state.material_storage += entities.Material(name, count, category)
 
@@ -198,3 +198,48 @@ def supercruise_entry_event(event: Event, state: GameStateData):
 @mutation('SupercruiseExit')
 def supercruise_exit_event(event: Event, state: GameStateData):
     state.location.supercruise = False
+
+
+@mutation('MaterialDiscarded')
+def material_discarded_event(event: Event, state: GameStateData):
+    if not {'Category', 'Name', 'Count'}.issubset(event.data.keys()):
+        return
+
+    category: str = str(event.data['Category'])
+    name: str = str(event.data['Name'])
+    count = int(event.data['Count'])  # type: ignore
+
+    state.material_storage -= entities.Material(name, count, category)
+
+
+@mutation('Synthesis')
+def synthesis_event(event: Event, state: GameStateData):
+    for material in event.data.get('Materials', []):
+        state.material_storage -= entities.Material(material['Name'], material['Count'], material['Category'])
+
+
+@mutation('MissionCompleted')
+def on_mission_completed_event(event: Event, state: GameStateData):
+    for material in event.data.get('MaterialsReward', []):
+        state.material_storage += entities.Material(material['Name'], material['Count'], material['Category'])
+
+
+@mutation('MaterialTrade')
+def on_material_trade_event(event: Event, state: GameStateData):
+    paid = event.data['Paid']
+    received = event.data['Received']
+    state.material_storage -= entities.Material(paid['Name'], paid['Count'], paid['Category'])
+    state.material_storage += entities.Material(received['Name'], received['Count'], received['Category'])
+
+
+@mutation('MaterialDiscarded')
+def on_material_discarded_event(event: Event, state: GameStateData):
+    state.material_storage -= entities.Material(event.data['Name'], event.data['Count'], event.data['Category'])
+
+
+@mutation('EngineerCraft')
+def on_engineer_craft_event(event: Event, state: GameStateData):
+    for material in event.data.get('Ingredients', []):
+        for category in ['Raw', 'Encoded', 'Manufactured']:
+            if material['Name'] in state.material_storage[category]:
+                state.material_storage -= entities.Material(material['Name'], material['Count'], category)
