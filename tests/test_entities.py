@@ -75,6 +75,26 @@ def test_material_sum():
     assert result.count == 4
 
 
+def test_material_sub():
+    m1 = entities.Material('test', 1, 'test')
+    m2 = entities.Material('test', 3, 'test')
+
+    result = m2 - m1
+    assert isinstance(result, entities.Material)
+    assert result is m2
+    assert result.count == 2
+
+
+def test_material_sub_below_zero():
+    m1 = entities.Material('test', 1, 'test')
+    m2 = entities.Material('test', 3, 'test')
+
+    result = m1 - m2
+    assert isinstance(result, entities.Material)
+    assert result is m1
+    assert result.count == 0
+
+
 def test_material_sum_different_materials():
     m1 = entities.Material('test', 1, 'test')
     m2 = entities.Material('test2', 3, 'test')

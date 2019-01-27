@@ -70,6 +70,17 @@ class Material(_BaseEntity):
             raise TypeError(f'Materials are not the same: {self} != {other}')
         return self
 
+    def __sub__(self, other):
+        if not isinstance(other, Material):
+            raise TypeError(f"unsupported operand type(s) for +: '{type(self)}' and '{type(other)}'")
+        if self.name == other.name and self.category == other.category:
+            self.count -= other.count
+            if self.count < 0:
+                self.count = 0
+        else:
+            raise TypeError(f'Materials are not the same: {self} != {other}')
+        return self
+
 
 @dataclasses.dataclass
 class MaterialStorage(_BaseEntity):
@@ -83,7 +94,10 @@ class MaterialStorage(_BaseEntity):
         'Manufactured': 'manufactured',
         'raw': 'raw',
         'encoded': 'encoded',
-        'manufactured': 'manufactured'
+        'manufactured': 'manufactured',
+        '$MICRORESOURCE_CATEGORY_Manufactured': 'manufactured',
+        '$MICRORESOURCE_CATEGORY_Encoded': 'encoded',
+        '$MICRORESOURCE_CATEGORY_Raw': 'raw',
     }
 
     def __getitem__(self, item):
@@ -102,6 +116,18 @@ class MaterialStorage(_BaseEntity):
                 category[material.name].count += material.count
             else:
                 category[material.name] = material
+        return self
+
+    def __isub__(self, material):
+        if not isinstance(material, Material):
+            raise TypeError(f"unsupported operand type(s) for -: '{type(self)}' and '{type(material)}'")
+        else:
+            category: Dict[str, Material] = self[material.category]
+
+            if material.name in category:
+                category[material.name].count -= material.count
+                if category[material.name].count < 0:
+                    category[material.name].count = 0
         return self
 
 
