@@ -37,7 +37,8 @@ class EDDNSchema:
         payload_dict['$schemaRef'] = payload_dict.pop('schemaRef')
         message_dict = payload_dict.pop('message')
         optional = message_dict.pop('optional', {})
-        payload_dict['message'] = {**message_dict, **optional}
+        payload_dict['message'] = optional
+        payload_dict['message'].update(message_dict)
         return payload_dict
 
 
