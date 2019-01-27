@@ -24,6 +24,8 @@ class GameStateData(entities._BaseEntity):
     location: entities.Location = entities.Location()
     credits: int = 0
 
+    # TODO: game mode: solo or open
+
     @classmethod
     def get_clear_data(cls) -> 'GameStateData':
         return cls()
