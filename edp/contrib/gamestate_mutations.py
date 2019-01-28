@@ -228,8 +228,8 @@ def on_mission_completed_event(event: Event, state: GameStateData):
 def on_material_trade_event(event: Event, state: GameStateData):
     paid = event.data['Paid']
     received = event.data['Received']
-    state.material_storage -= entities.Material(paid['Name'], paid['Count'], paid['Category'])
-    state.material_storage += entities.Material(received['Name'], received['Count'], received['Category'])
+    state.material_storage -= entities.Material(paid['Material'], paid['Quantity'], paid['Category'])
+    state.material_storage += entities.Material(received['Material'], received['Quantity'], received['Category'])
 
 
 @mutation('MaterialDiscarded')
