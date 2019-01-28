@@ -1,6 +1,7 @@
 import logging
+import logging
 import threading
-from typing import List, Dict, Generic, TypeVar, Optional, Callable
+from typing import List, Dict, Generic, TypeVar, Callable, Iterator
 
 from edp import journal, plugins
 
@@ -45,25 +46,31 @@ RT = TypeVar('RT')
 
 class RoutingSwitchRegistry(Generic[CT, RT]):
     def __init__(self):
-        self._callbacks: Dict[str, Callable] = {}
+        self._callbacks: Dict[str, List[Callable]] = {}
 
     def register(self, *routing_keys: str):
         def decor(func: CT):
             for key in routing_keys:
                 if key in self._callbacks:
-                    logger.warning(f'Callback aready registered for key {key}: {self._callbacks[key]}')
-                self._callbacks[key] = func
+                    self._callbacks[key].append(func)
+                else:
+                    self._callbacks[key] = [func]
             return func
 
         return decor
 
-    def execute(self, routing_key: str, **kwargs) -> RT:
+    def execute(self, routing_key: str, **kwargs) -> Iterator[RT]:
         if routing_key not in self._callbacks:
             raise KeyError(f'Callback for key {routing_key} not registered')
-        return self._callbacks[routing_key](**kwargs)
+        for callback in self._callbacks[routing_key]:
+            try:
+                yield callback(**kwargs)
+            except:
+                logger.exception(f'Error executing callback for key {routing_key}: {callback}')
+                logger.error(kwargs)
 
-    def execute_silently(self, routing_key: str, **kwargs) -> Optional[RT]:
+    def execute_silently(self, routing_key: str, **kwargs) -> Iterator[RT]:
         try:
-            return self.execute(routing_key, **kwargs)
+            yield from self.execute(routing_key, **kwargs)
         except KeyError:
-            return None
+            yield from []

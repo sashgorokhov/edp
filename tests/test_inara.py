@@ -30,7 +30,7 @@ def test_is_enabled(api_key, enabled, result, inara_plugin):
 def mock_callback(inara_plugin):
     callback = mock.MagicMock()
 
-    with mock.patch.dict(inara.processor_registry._callbacks, {'test': callback}):
+    with mock.patch.dict(inara.processor_registry._callbacks, {'test': [callback]}):
         yield callback
 
 
@@ -54,13 +54,13 @@ def event():
 
 def test_process_event_returns_none(inara_plugin, mock_callback, event):
     mock_callback.return_value = None
-    assert inara_plugin.process_event(event) == []
+    assert list(inara_plugin.process_event(event)) == []
 
 
 def test_process_event_returns_single_event(inara_plugin, mock_callback, event):
     inara_event = inara.InaraEvent('test', 'test', {})
     mock_callback.return_value = inara_event
-    assert inara_plugin.process_event(event) == [inara_event]
+    assert list(inara_plugin.process_event(event)) == [inara_event]
     mock_callback.assert_called_once_with(event=event)
 
 
@@ -68,7 +68,7 @@ def test_process_event_returns_multiple_evets(inara_plugin, mock_callback, event
     inara_event = inara.InaraEvent('test', 'test', {})
     inara_event2 = inara.InaraEvent('test2', 'test2', {})
     mock_callback.return_value = [inara_event, inara_event2]
-    assert inara_plugin.process_event(event) == [inara_event, inara_event2]
+    assert list(inara_plugin.process_event(event)) == [inara_event, inara_event2]
     mock_callback.assert_called_once_with(event=event)
 
 

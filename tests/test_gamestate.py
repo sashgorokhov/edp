@@ -4,15 +4,7 @@ from unittest import mock
 import pytest
 
 from edp import journal
-from edp.contrib import gamestate, gamestate_mutations
-
-
-@pytest.fixture(autouse=True)
-def clear_test_mutations():
-    yield
-    for key in list(gamestate_mutations.GAME_STATE_MUTATIONS.keys()):
-        if key.startswith('test'):
-            gamestate_mutations.GAME_STATE_MUTATIONS.pop(key)
+from edp.contrib import gamestate
 
 
 @pytest.fixture()
@@ -22,7 +14,6 @@ def plugin() -> gamestate.GameState:
 
 def test_update_state_mutation_not_registered(plugin):
     event = journal.Event(datetime.datetime.now(), 'test', {}, '{}')
-    assert event.name not in gamestate_mutations.GAME_STATE_MUTATIONS
     assert not plugin.update_state(event)
 
 
@@ -30,11 +21,10 @@ def test_update_state_mutation_run(plugin):
     event = journal.Event(datetime.datetime.now(), 'test', {}, '{}')
 
     mutation = mock.MagicMock()
-    gamestate_mutations.mutation('test')(mutation)
+    with mock.patch.dict(gamestate.mutation_registry._callbacks, {'test': [mutation]}):
+        plugin.update_state(event)
 
-    plugin.update_state(event)
-
-    mutation.assert_called_once_with(event, plugin.state)
+    mutation.assert_called_once_with(event=event, state=plugin.state)
 
 
 def test_update_state_mutation_run_error(plugin):
@@ -43,11 +33,10 @@ def test_update_state_mutation_run_error(plugin):
     mutation = mock.MagicMock()
     mutation.side_effect = ValueError
 
-    gamestate_mutations.mutation('test')(mutation)
+    with mock.patch.dict(gamestate.mutation_registry._callbacks, {'test': [mutation]}):
+        plugin.update_state(event)
 
-    plugin.update_state(event)
-
-    mutation.assert_called_once_with(event, plugin.state)
+    mutation.assert_called_once_with(event=event, state=plugin.state)
 
 
 def test_set_initial_state(plugin):
@@ -65,12 +54,10 @@ def test_set_initial_state(plugin):
     mutation2 = mock.MagicMock()
     mutation3 = mock.MagicMock()
 
-    gamestate_mutations.mutation('test1')(mutation1)
-    gamestate_mutations.mutation('test2')(mutation2)
-    gamestate_mutations.mutation('test3')(mutation3)
-
-    with mock.patch('edp.contrib.gamestate.game_state_set_signal') as signal_mock:
-        plugin.set_initial_state()
+    with mock.patch.dict(gamestate.mutation_registry._callbacks,
+                         {'test1': [mutation1], 'test2': [mutation2], 'test3': [mutation3]}):
+        with mock.patch('edp.contrib.gamestate.game_state_set_signal') as signal_mock:
+            plugin.set_initial_state()
 
     signal_mock.emit.assert_called_once()
 
@@ -82,12 +69,12 @@ def test_set_initial_state(plugin):
 def test_on_journal_event_changed_state(plugin):
     event = journal.Event(datetime.datetime.now(), 'test', {}, '{}')
 
-    @gamestate_mutations.mutation('test')
     def mutation(event, state: gamestate.GameStateData):
         state.commander.name = 'test'
 
-    with mock.patch('edp.contrib.gamestate.game_state_changed_signal') as signal_mock:
-        plugin.on_journal_event(event)
+    with mock.patch.dict(gamestate.mutation_registry._callbacks, {'test': [mutation]}):
+        with mock.patch('edp.contrib.gamestate.game_state_changed_signal') as signal_mock:
+            plugin.on_journal_event(event)
 
     signal_mock.emit.assert_called_once()
 

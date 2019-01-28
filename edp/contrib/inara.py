@@ -189,13 +189,17 @@ class InaraPlugin(BufferedEventsMixin, plugins.BasePlugin):
                 logger.warning(f'Soft error {resp} for {jevent}')
 
     def process_event(self, event: journal.Event) -> List[InaraEvent]:
-        result = processor_registry.execute_silently(event.name, event=event)
-        if result is None:
-            return []
-        if isinstance(result, list):
-            return result
-        if isinstance(result, InaraEvent):
-            return [result]
+        inara_events: List[InaraEvent] = []
+
+        for result in processor_registry.execute_silently(event.name, event=event):
+            if result is None:
+                continue
+            if isinstance(result, list):
+                inara_events.extend(result)
+            if isinstance(result, InaraEvent):
+                inara_events.append(result)
+
+        return inara_events
 
 
 @processor_registry.register('Docked')
