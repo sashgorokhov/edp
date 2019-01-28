@@ -24,7 +24,7 @@ def test_update_state_mutation_run(plugin):
     with mock.patch.dict(gamestate.mutation_registry._callbacks, {'test': [mutation]}):
         plugin.update_state(event)
 
-    mutation.assert_called_once_with(event=event, state=plugin.state)
+    mutation.assert_called_once_with(event=event, state=plugin._state)
 
 
 def test_update_state_mutation_run_error(plugin):
@@ -36,7 +36,7 @@ def test_update_state_mutation_run_error(plugin):
     with mock.patch.dict(gamestate.mutation_registry._callbacks, {'test': [mutation]}):
         plugin.update_state(event)
 
-    mutation.assert_called_once_with(event=event, state=plugin.state)
+    mutation.assert_called_once_with(event=event, state=plugin._state)
 
 
 def test_set_initial_state(plugin):

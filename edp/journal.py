@@ -8,6 +8,7 @@ from typing import NamedTuple, Optional, List, Dict, Any, Iterator
 
 from edp.signalslib import Signal
 from edp.thread import StoppableThread
+from edp.utils import immutable
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,7 @@ def process_event(event_line: str) -> Event:
 
     name: str = event['event']
 
+    event = immutable.make_immutable(event)
     return Event(timestamp, name, event, event_line)
 
 

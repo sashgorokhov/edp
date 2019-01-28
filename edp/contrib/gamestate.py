@@ -1,7 +1,7 @@
 import collections
 import logging
 import threading
-from typing import List, Dict, Callable
+from typing import List, Dict, Callable, cast
 
 import dataclasses
 import inject
@@ -10,12 +10,12 @@ from edp import entities, signals
 from edp.journal import JournalReader, Event, journal_event_signal
 from edp.plugins import BasePlugin
 from edp.signalslib import Signal
-from edp.utils import plugins_helpers
+from edp.utils import plugins_helpers, immutable
 
 logger = logging.getLogger(__name__)
 
 
-@dataclasses.dataclass(init=False, repr=False)
+@dataclasses.dataclass(repr=False)
 class GameStateData(entities._BaseEntity):
     commander: entities.Commander = entities.Commander()
     material_storage: entities.MaterialStorage = entities.MaterialStorage()
@@ -28,13 +28,16 @@ class GameStateData(entities._BaseEntity):
 
     # TODO: game mode: solo or open
 
+    def __init__(self):
+        self.engineers = {}
+        super(GameStateData, self).__init__()
+
     @classmethod
     def get_clear_data(cls) -> 'GameStateData':
         return cls()
 
     def frozen(self) -> 'GameStateData':
-        # TODO: Return immutable game state data
-        return self
+        return cast(GameStateData, immutable.make_immutable(self))
 
 
 game_state_changed_signal = Signal('game state changed', state=GameStateData)
