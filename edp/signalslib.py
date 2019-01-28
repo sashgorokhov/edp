@@ -46,6 +46,10 @@ class Signal:
         self.check_signature(data)
         signal_manager.emit(self, **data)
 
+    def emit_eager(self, **data):
+        self.check_signature(data)
+        signal_manager.emit_eager(self, **data)
+
     def check_signature(self, func_or_data: Union[Callable, Dict]):
         if isinstance(func_or_data, FunctionType) and not check_signature(func_or_data, self.signature):
             raise TypeError(f'Signature mismatch: {self.signature} != {func_or_data} {func_or_data.__annotations__}')
@@ -96,6 +100,11 @@ class SignalManager:
         if signal.callbacks:
             signal_item = SignalExecutionItem(signal.name, signal.callbacks, kwargs)
             self._signal_queue.put_nowait(signal_item)
+
+    def emit_eager(self, signal: Signal, **kwargs):
+        if signal.callbacks:
+            signal_item = SignalExecutionItem(signal.name, signal.callbacks, kwargs)
+            execute_signal_item(signal_item)
 
 
 signal_manager = SignalManager()

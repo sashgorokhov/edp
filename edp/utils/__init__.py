@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Optional, Dict, Mapping, Sequence, Iterator, TypeVar
+from typing import Optional, Dict, Mapping, Sequence, Iterator, TypeVar, Any
 
 logger = logging.getLogger(__name__)
 
@@ -60,3 +60,14 @@ def chunked(l: Sequence[T], size: int = 5) -> Iterator[Sequence[T]]:
 
 def has_keys(d: dict, *keys: str) -> bool:
     return set(keys).issubset(set(d.keys()))
+
+
+def map_keys(d: Dict[str, Any], strict: bool = False, **key_map: str) -> Dict[str, Any]:
+    result = {}
+    for key, value in d.items():
+        if key not in key_map and strict:
+            raise KeyError(key)
+        if key in key_map:
+            result[key_map[key]] = value
+
+    return result

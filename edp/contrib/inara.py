@@ -12,7 +12,7 @@ from edp import journal, config, plugins
 from edp.contrib import gamestate
 from edp.gui.forms.settings_window import VLayoutTab
 from edp.settings import BaseSettings
-from edp.utils import subset, has_keys
+from edp.utils import subset, has_keys, map_keys
 from edp.utils.plugins_helpers import BufferedEventsMixin, RoutingSwitchRegistry
 
 logger = logging.getLogger(__name__)
@@ -338,19 +338,17 @@ def on_loadout_event(event: journal.Event) -> List[InaraEvent]:
     modules = []
 
     for m in event.data.get('Modules', []):
-        d = {
-            "slotName": m['Slot'],
-            "itemName": m['Item'],
-            "itemValue": m['Value'],
-            "itemHealth": m['Health'],
-            "isOn": m['On'],
-            "itemPriority": m['Priority'],
-            "itemAmmoClip": m.get('AmmoInClip', 0),
-            "itemAmmoHopper": m.get('AmmoInHopper', 0),
-        }
-        if 'AmmoInClip' in m:
-            d['itemAmmoClip'] = m['AmmoInClip']
-            d['itemAmmoHopper'] = m['AmmoInHopper']
+        d = map_keys(
+            m,
+            Slot='slotName',
+            Item='itemName',
+            Value='itemValue',
+            Health='itemHealth',
+            On='isOn',
+            Priority='itemPriority',
+            AmmoInClip='itemAmmoClip',
+            AmmoInHopper='itemAmmoHopper'
+        )
         if 'Engineering' in m:
             e = m['Engineering']
             d['engineering'] = {
@@ -365,7 +363,7 @@ def on_loadout_event(event: journal.Event) -> List[InaraEvent]:
                         "lessIsGood": bool(mod['LessIsGood'])
                     }
                     for mod in e.get('Modifiers', [])
-                    if {'Label', 'Value', 'OriginalValue', 'LessIsGood'}.issubset(set(mod.keys()))
+                    if has_keys(mod, 'Label', 'Value', 'OriginalValue', 'LessIsGood')
                 ]
             }
             if 'ExperimentalEffect' in e:
@@ -382,9 +380,12 @@ def on_loadout_event(event: journal.Event) -> List[InaraEvent]:
                 'shipName': event.data['ShipName'],
                 'shipIdent': event.data['ShipIdent'],
                 'isCurrentShip': True,
-                'shipHullValue': event.data['HullValue'],
-                'shipModulesValue': event.data['ModulesValue'],
-                'shipRebuyCost': event.data['Rebuy'],
+                **map_keys(
+                    event.data,
+                    HullValue='shipHullValue',
+                    shipModulesValue='ModulesValue',
+                    shipRebuyCost='Rebuy'
+                )
             }
         ),
         InaraEvent(

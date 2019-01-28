@@ -6,7 +6,7 @@ from typing import Optional, Dict
 import dataclasses
 from PyQt5 import QtWidgets
 
-from edp import plugins, config
+from edp import plugins, config, signals
 from edp.contrib import gamestate
 from edp.gui.forms.settings_window import VLayoutTab
 from edp.settings import BaseSettings
@@ -129,3 +129,10 @@ class DiscordRichPresencePlugin(plugins.BasePlugin):
 
     def get_settings_widget(self):
         return DRPSettingsTabWidget()
+
+    @plugins.bind_signal(signals.exiting)
+    def on_exit(self):
+        try:
+            self.rpc_client().close()
+        except:
+            logger.warning('Error closing client')

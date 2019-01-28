@@ -84,7 +84,10 @@ def main():
             window = MainWindow(plugin_manager)
             main_window_created_signal.emit(window=window)
             window.show()
-            app.exec_()
+            try:
+                app.exec_()
+            finally:
+                signals.exiting.emit_eager()
 
 
 if __name__ == '__main__':

@@ -1,9 +1,8 @@
 import logging
-import logging
 import threading
 from typing import List, Dict, Generic, TypeVar, Callable, Iterator
 
-from edp import journal, plugins
+from edp import journal, plugins, signals
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +37,10 @@ class BufferedEventsMixin:
 
     def process_buffered_events(self, events: List[journal.Event]):
         raise NotImplementedError
+
+    @plugins.bind_signal(signals.exiting)
+    def exit_callback(self):
+        self.buffer_flush_callback()
 
 
 CT = TypeVar('CT', bound=Callable)  # Callback Type

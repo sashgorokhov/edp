@@ -1,17 +1,16 @@
 import functools
 import json
 import logging
-import threading
 from typing import List, Optional, Callable, TypeVar
 
 import requests
 
-from edp import plugins, config, utils
+from edp import plugins, config, utils, journal
 from edp.contrib.gamestate import GameState, GameStateData, game_state_set_signal
 from edp.gui.forms.settings_window import VLayoutTab
-from edp.journal import Event, journal_event_signal
 from edp.plugins import BasePlugin
 from edp.settings import BaseSettings
+from edp.utils.plugins_helpers import BufferedEventsMixin
 
 logger = logging.getLogger(__name__)
 
@@ -86,13 +85,11 @@ def cache(func: Callable[..., T]) -> T:
     return functools.lru_cache()(func)  # type: ignore
 
 
-class EDSMPlugin(BasePlugin):
+class EDSMPlugin(BufferedEventsMixin, BasePlugin):
     gamestate: GameState
 
     def __init__(self, *args, **kwargs):
         super(EDSMPlugin, self).__init__(*args, **kwargs)
-        self._event_buffer: List[Event] = []
-        self._event_buffer_lock = threading.Lock()
 
         self.settings = EDSMSettings.get_insance()
 
@@ -114,22 +111,10 @@ class EDSMPlugin(BasePlugin):
     def discarded_events(self) -> List[str]:
         return self.api.discarded_events()
 
-    @plugins.bind_signal(journal_event_signal)
-    def journal_event(self, event: Event):
-        if event.name in self.discarded_events:
-            return
-        with self._event_buffer_lock:
-            self._event_buffer.append(event)
+    def filter_event(self, event: journal.Event):
+        return event.name not in self.discarded_events
 
-    @plugins.scheduled(60)
-    def push_events(self):
-        if not self._event_buffer:
-            return
-
-        with self._event_buffer_lock:
-            events = self._event_buffer.copy()
-            self._event_buffer.clear()
-
+    def process_buffered_events(self, events: List[journal.Event]):
         patched_events = [self.patch_event(event.raw, self.gamestate.state) for event in events]
 
         for chunk in utils.chunked(patched_events, size=5):

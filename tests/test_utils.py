@@ -60,3 +60,14 @@ def test_subset_strict(d, k, result, raises):
 ])
 def test_has_keys(d, keys, result):
     assert utils.has_keys(d, *keys) == result
+
+
+@pytest.mark.parametrize(('d', 'keys_map', 'result'), [
+    ({}, {}, {}),
+    ({1: 2}, {}, {}),
+    ({}, {'foo': 'bar'}, {}),
+    ({'key': 'value'}, {'foo': 'bar'}, {}),
+    ({'foo': 'value'}, {'foo': 'bar'}, {'bar': 'value'}),
+])
+def test_map_keys(d, keys_map, result):
+    assert utils.map_keys(d, **keys_map) == result

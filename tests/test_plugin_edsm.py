@@ -108,16 +108,16 @@ def mock_api():
 def test_journal_event_discarded(discarded_events, event_name, is_discarded, plugin, mock_api):
     event = journal.Event(datetime.datetime.now(), event_name, {}, '')
     mock_api.discarded_events.return_value = discarded_events
-    plugin.journal_event(event)
+    plugin.on_journal_event(event)
 
     if is_discarded:
-        assert len(plugin._event_buffer) == 0
+        assert len(plugin._events_buffer) == 0
     else:
-        assert len(plugin._event_buffer) == 1
+        assert len(plugin._events_buffer) == 1
 
 
 def test_push_events_empty_buffer(mock_api, plugin):
-    plugin.push_events()
+    plugin.process_buffered_events([])
     mock_api.journal_event.assert_not_called()
 
 
@@ -151,7 +151,6 @@ def test_push_events_event_patched_with_state(mock_api, plugin):
         journal.Event(datetime.datetime.now(), 'test2', {'foo': 'bar'}, '{"foo": "bar"}'),
         journal.Event(datetime.datetime.now(), 'test3', {'event': 'test3'}, '{"event": "test3"}'),
     ]
-    plugin._event_buffer.extend(events)
 
     state = gamestate.GameStateData.get_clear_data()
     state.location.address = 'test_address'
@@ -164,7 +163,7 @@ def test_push_events_event_patched_with_state(mock_api, plugin):
     plugin.gamestate = mock.Mock()
     plugin.gamestate.state = state
 
-    plugin.push_events()
+    plugin.process_buffered_events(events)
 
     mock_api.journal_event.assert_called_once()
     patched_events = mock_api.journal_event.call_args[0]
