@@ -22,8 +22,8 @@ class Event(NamedTuple):
 
 
 class VersionInfo(NamedTuple):
-    version: str
-    build: str
+    version: str = 'unknown'
+    build: str = 'unknown'
 
 
 journal_event_signal = Signal('journal event', event=Event)
@@ -147,7 +147,7 @@ class JournalReader:
         for event in events:
             if event.name == 'Fileheader':
                 gameversion = event.data.get('gameversion', 'unknown')
-                build = event.data.get('build', 'unkown')
+                build = event.data.get('build', 'unknown')
                 return VersionInfo(gameversion, build)
         return None
 

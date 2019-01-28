@@ -1,16 +1,16 @@
 import collections
 import logging
 import threading
-from typing import List, Dict, Callable, cast
+from typing import List, Dict, Callable
 
 import dataclasses
 import inject
 
 from edp import entities, signals
-from edp.journal import JournalReader, Event, journal_event_signal
+from edp.journal import JournalReader, Event, journal_event_signal, VersionInfo
 from edp.plugins import BasePlugin
 from edp.signalslib import Signal
-from edp.utils import plugins_helpers, immutable
+from edp.utils import plugins_helpers
 
 logger = logging.getLogger(__name__)
 
@@ -25,11 +25,14 @@ class GameStateData(entities._BaseEntity):
     engineers: Dict[int, entities.Engineer] = dataclasses.field(default_factory=dict)
     location: entities.Location = entities.Location()
     credits: int = 0
+    running: bool = False
+    version: VersionInfo = dataclasses.field(default_factory=VersionInfo)
 
     # TODO: game mode: solo or open
 
     def __init__(self):
         self.engineers = {}
+        self.version = VersionInfo()
         super(GameStateData, self).__init__()
 
     @classmethod
@@ -37,7 +40,8 @@ class GameStateData(entities._BaseEntity):
         return cls()
 
     def frozen(self) -> 'GameStateData':
-        return cast(GameStateData, immutable.make_immutable(self))
+        # TODO: make immutable
+        return self
 
 
 game_state_changed_signal = Signal('game state changed', state=GameStateData)
@@ -294,3 +298,17 @@ def on_engineer_craft_event(event: Event, state: GameStateData):
         for category in ['Raw', 'Encoded', 'Manufactured']:
             if material['Name'] in state.material_storage[category]:
                 state.material_storage -= entities.Material(material['Name'], material['Count'], category)
+
+
+@mutation_registry.register('FileHeader')
+def on_fileheader_event(event: Event, state: GameStateData):
+    state.running = True
+
+    gameversion = event.data.get('gameversion', 'unknown')
+    build = event.data.get('build', 'unknown')
+    state.version = VersionInfo(gameversion, build)
+
+
+@mutation_registry.register('Shutdown')
+def on_shutdown_event(event: Event, state: GameStateData):
+    state.running = False
