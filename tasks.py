@@ -206,3 +206,12 @@ def bump_patch(c):
     major, minor, patch = read_version()
     (BASE_DIR / 'VERSION').write_text('.'.join(map(str, (major, minor, patch + 1))))
     commit_version(c)
+
+
+@invoke.task()
+def commits_before_tag(c):
+    all_tags = list(filter(None, (t.strip() for t in c.run('git tag', hide=True).stdout.split('\n'))))
+    previous_tag = all_tags[-2]
+    last_tag = all_tags[-1]
+    result = c.run(f'git log --pretty=oneline {previous_tag}..{last_tag}').stdout
+    return result.split('\n')
