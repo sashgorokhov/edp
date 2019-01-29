@@ -117,7 +117,7 @@ class EDSMPlugin(BufferedEventsMixin, BasePlugin):
     def process_buffered_events(self, events: List[journal.Event]):
         patched_events = [self.patch_event(event.raw, self.gamestate.state) for event in events]
 
-        for chunk in utils.chunked(patched_events, size=5):
+        for chunk in utils.chunked(patched_events, size=10):
             try:
                 self.api.journal_event(*chunk)
             except requests.exceptions.ConnectionError:
