@@ -270,7 +270,9 @@ def material_discarded_event(event: Event, state: GameStateData):
 @mutation_registry.register('Synthesis')
 def synthesis_event(event: Event, state: GameStateData):
     for material in event.data.get('Materials', []):
-        state.material_storage -= entities.Material(material['Name'], material['Count'], material['Category'])
+        for category in ['Raw', 'Encoded', 'Manufactured']:
+            if material['Name'] in state.material_storage[category]:
+                state.material_storage -= entities.Material(material['Name'], material['Count'], category)
 
 
 @mutation_registry.register('MissionCompleted')
