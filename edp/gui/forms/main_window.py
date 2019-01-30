@@ -3,7 +3,7 @@ import logging
 from functools import partial
 from typing import Dict, Type, List
 
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtCore
 
 from edp.gui.compiled.main_window import Ui_MainWindow
 from edp.gui.components import state_overview, simple_events_list, materials_collected
@@ -106,6 +106,8 @@ class MainWindowSectionsView:
 
 
 class MainWindow(Ui_MainWindow, QtWidgets.QMainWindow):
+    on_showed = QtCore.pyqtSignal()
+
     def __init__(self, plugin_manager: PluginManager):
         super(MainWindow, self).__init__()
         self.setupUi(self)
@@ -129,6 +131,10 @@ class MainWindow(Ui_MainWindow, QtWidgets.QMainWindow):
 
         layout: QtWidgets.QVBoxLayout = self.layout()
         layout.setContentsMargins(0, 0, 0, 0)
+
+    def show(self):
+        self.on_showed.emit()
+        super(MainWindow, self).show()
 
     def closeEvent(self, *args, **kwargs):
         self._app.quit()
