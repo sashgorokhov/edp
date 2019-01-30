@@ -1,4 +1,5 @@
 import collections
+import copy
 
 import dataclasses
 
@@ -17,6 +18,9 @@ class ImmutableList(collections.UserList):
     def __init__(self, data: list = None):
         self.data = data or []
 
+    def copy(self):
+        return copy.deepcopy(self.data)
+
 
 class ImmutableDict(collections.UserDict):
     __immutable_methods__ = ('__setitem__', '__delitem__', 'pop', 'update', 'setdefault', 'popitem')
@@ -26,6 +30,9 @@ class ImmutableDict(collections.UserDict):
 
     def __init__(self, data: dict = None):
         self.data = data or {}
+
+    def copy(self):
+        return copy.deepcopy(self.data)
 
 
 def make_immutable(obj):
