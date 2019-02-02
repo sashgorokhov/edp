@@ -8,10 +8,7 @@ from edp import config
 
 def configure(enable_sentry: bool = True):
     config.LOGS_DIR.mkdir(parents=True, exist_ok=True)
-    if config.FROZEN:
-        logging.config.dictConfig(LOGGING_CONFIG_FROZEN)
-    else:
-        logging.config.dictConfig(LOGGING_CONFIG)
+    logging.config.dictConfig(LOGGING_CONFIG)
 
     if config.SENTRY_DSN and config.FROZEN and enable_sentry:
         sentry_sdk.init(
@@ -20,8 +17,6 @@ def configure(enable_sentry: bool = True):
             server_name='unknown'
         )
 
-
-DEFAULT_HANDLERS = ['file'] + (['console'] if not config.FROZEN else [])
 
 LOGGING_CONFIG = {
     'version': 1,
@@ -48,17 +43,35 @@ LOGGING_CONFIG = {
             'filename': config.LOGS_DIR / 'edp.log',
             'maxBytes': 1024 * 1024,  # 1 mb
             'backupCount': 10
+        },
+        'capi': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'formatter': 'default',
+            'filename': config.LOGS_DIR / 'edp_capi.log',
+            'maxBytes': 1024 * 1024,  # 1 mb
+            'backupCount': 5
         }
     },
     'loggers': {
         'edp': {
-            'handlers': DEFAULT_HANDLERS,
+            'handlers': ['file', 'console'],
             'level': 'DEBUG',
             'propagate': False,
         },
+        'edp.plugins': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
         'edp.utils.discord_rpc': {
-            'handlers': DEFAULT_HANDLERS,
+            'handlers': ['file', 'console'],
             'level': 'ERROR',
+            'propagate': False
+        },
+        'edp.contrib.capi': {
+            'handlers': ['capi', 'console'],
+            'level': 'DEBUG',
             'propagate': False
         }
     },
@@ -67,5 +80,3 @@ LOGGING_CONFIG = {
         'level': 'ERROR'
     },
 }
-
-LOGGING_CONFIG_FROZEN = LOGGING_CONFIG.copy()

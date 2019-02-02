@@ -2,8 +2,6 @@ import json
 import os
 import sys
 from pathlib import Path
-
-# If running from pycharm python console it will be something in pycharm/helpers/pydev....
 from typing import Optional
 
 EXECUTABLE_PATH: Path = Path(sys.argv[0]).absolute()
@@ -30,7 +28,8 @@ APPNAME_FRIENDLY: str = 'Elite Dangerous Platform'
 USERAGENT: str = f'{APPNAME_LONG}-v{VERSION}'
 
 SENTRY_DSN: Optional[str] = None
-DISCORD_CLIENT_ID: Optional[str] = '537322842291961857'
+DISCORD_CLIENT_ID: str = '537322842291961857'
+CAPI_CLIENT_ID: str = '9ff21d7b-c502-45f3-be70-580674751c90'
 
 # Some simple secret data injection
 if FROZEN and DIST_FILE.exists():

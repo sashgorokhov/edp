@@ -15,7 +15,7 @@ def main():
 
     from edp import signalslib, plugins, thread, signals, journal, config, logging_tools
     from edp.gui.forms.main_window import MainWindow, main_window_created_signal
-    from edp.contrib import edsm, gamestate, eddn
+    from edp.contrib import edsm, gamestate, eddn, capi
     from edp.settings import EDPSettings
 
     settings = EDPSettings.get_insance()
@@ -47,6 +47,7 @@ def main():
         plugin_loader.add_plugin(eddn.EDDNPlugin)
         plugin_loader.add_plugin(discord_rich_presence.DiscordRichPresencePlugin)
         plugin_loader.add_plugin(inara.InaraPlugin)
+        plugin_loader.add_plugin(capi.CapiPlugin)
         plugin_loader.load_plugins()
 
         plugin_manager = plugins.PluginManager(plugin_loader.get_plugins())
@@ -72,7 +73,7 @@ def main():
 
         with thread_manager:
             time.sleep(0.1)  # do we need this? for threads warmup
-            signals.init_complete.emit()
+            signals.init_complete.emit_eager()
 
             logger.info('Initializing gui')
 
@@ -82,7 +83,7 @@ def main():
             app.setApplicationName(config.APPNAME_SHORT)
 
             window = MainWindow(plugin_manager)
-            main_window_created_signal.emit(window=window)
+            main_window_created_signal.emit_eager(window=window)
             window.show()
             try:
                 app.exec_()

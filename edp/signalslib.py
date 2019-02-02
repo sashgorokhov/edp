@@ -79,7 +79,11 @@ class SignalExecutorThread(StoppableThread):
 
 def execute_signal_item(signal_item: SignalExecutionItem):
     for callback in signal_item.callbacks:
-        kwargs = copy.deepcopy(signal_item.kwargs)
+        try:
+            kwargs = copy.deepcopy(signal_item.kwargs)
+        except:
+            logger.debug('Failed to deepcopy signal data', exc_info=True)
+            kwargs = signal_item.kwargs
         try:
             callback(**kwargs)
         except:
