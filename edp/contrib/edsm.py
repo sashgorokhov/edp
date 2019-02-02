@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class EDSMSettings(BaseSettings):
+    enabled: bool = True
     api_key: Optional[str] = None
     commander_name: Optional[str] = None
 
@@ -26,6 +27,7 @@ class EDSMSettingsTabWidget(VLayoutTab):
     def get_settings_links(self):
         settings = EDSMSettings.get_insance()
 
+        yield self.link_checkbox(settings, 'enabled', 'Enabled')
         yield self.link_line_edit(settings, 'api_key', 'Api key')
         yield self.link_line_edit(settings, 'commander_name', 'Commander name')
 
@@ -94,7 +96,7 @@ class EDSMPlugin(BufferedEventsMixin, BasePlugin):
         self.settings = EDSMSettings.get_insance()
 
     def is_enalbed(self):
-        return bool(self.settings.api_key and self.settings.commander_name)
+        return bool(self.settings.enabled and self.settings.api_key and self.settings.commander_name)
 
     @plugins.bind_signal(game_state_set_signal, plugin_enabled=False)
     def on_game_state_set(self, state: GameStateData):
