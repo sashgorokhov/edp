@@ -198,6 +198,8 @@ class CapiManager:
 
         self._session = requests.Session()
         self._session.headers['User-Agent'] = config.USERAGENT
+        if self._settings.access_token:
+            self._session.headers['Authorization'] = f'Bearer {self._settings.access_token}'
 
         self._refresh_token_lock = threading.Lock()
 

@@ -3,7 +3,7 @@ import os
 import re
 import shutil
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 import invoke
 import requests
@@ -133,10 +133,14 @@ def release(c):
     sha1_exe = gethashsum(EXE_FILE, sha1=True)
     sha1_zip = gethashsum(DIST_ZIP, sha1=True)
 
+    commits_lines: List[str] = commits_before_tag(c)
+    commits_info = [cl.split(' ', 1) for cl in commits_lines]
+    changelog = '\n'.join(f'- ({sha}) {message}' for sha, message in commits_info)
+
     body = f"""
 ### Changelog:
 
-- nothing here
+{changelog}
 
 ### Hashsums:
 

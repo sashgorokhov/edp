@@ -1,11 +1,14 @@
+import datetime
+import itertools
 import logging
-from typing import List, Dict, Tuple
+import re
+from typing import List, Dict, Tuple, Any, Union
 
 import dataclasses
 import requests
-from PyQt5 import QtWidgets, QtCore
 
-from edp import config, journal, utils
+from edp import config, journal, utils, plugins
+from edp.contrib import capi
 from edp.contrib.gamestate import get_gamestate, GameStateData
 from edp.gui.forms.settings_window import VLayoutTab
 from edp.plugins import BasePlugin
@@ -54,6 +57,41 @@ class BlackmarketMessageSchema(_SchemaMessage):
     prohibited: bool
 
 
+# https://github.com/EDSM-NET/EDDN/blob/master/schemas/outfitting-v2.0.json
+@dataclasses.dataclass
+class OutfittingMessageSchema(_SchemaMessage):
+    systemName: str
+    stationName: str
+    marketId: int
+    horizons: bool
+    timestamp: str
+    modules: List[str]
+
+
+# https://github.com/EDSM-NET/EDDN/blob/master/schemas/shipyard-v2.0.json
+@dataclasses.dataclass
+class ShipyardMessageSchema(_SchemaMessage):
+    systemName: str
+    stationName: str
+    marketId: int
+    horizons: bool
+    timestamp: str
+    ships: List[str]
+
+
+# https://github.com/EDSM-NET/EDDN/blob/master/schemas/commodity-v3.0.json
+@dataclasses.dataclass
+class CommodityMessageSchema(_SchemaMessage):
+    systemName: str
+    stationName: str
+    marketId: int
+    horizons: bool
+    timestamp: str
+    commodities: List[Dict[str, Any]]
+    economies: List[Dict[str, Any]]
+    optional: Dict
+
+
 # https://github.com/EDSM-NET/EDDN/blob/master/schemas/journal-v1.0.json
 @dataclasses.dataclass
 class JournalMessageSchema(_SchemaMessage):
@@ -76,14 +114,7 @@ class EDDNSettingsTabWidget(VLayoutTab):  # pragma: no cover
     def get_settings_links(self):
         settings = EDDNSettings.get_insance()
 
-        layout = QtWidgets.QHBoxLayout()
-        checkbox = QtWidgets.QCheckBox()
-        checkbox.setText('Enabled')
-        checkbox.stateChanged.connect(lambda state: settings.__setattr__('enabled', QtCore.Qt.Checked == state))
-        checkbox.setChecked(settings.enabled)
-        layout.addWidget(checkbox)
-        layout.addStretch(1)
-        yield layout
+        yield self.link_checkbox(settings, 'enabled', 'Enabled')
 
 
 class EDDNPlugin(BufferedEventsMixin, BasePlugin):
@@ -150,6 +181,149 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
             logger.error(f'Error sending message to EDDN, status code is: {response.status_code}')
             logger.error(f'Response text: {response.text}')
             logger.error(f'Payload: {payload}')
+        return response
+
+    @plugins.bind_signal(capi.shipyard_info_signal)
+    def on_capi_shipyard_info_outfitting(self, data: dict):
+        gamestate = get_gamestate()
+
+        if not gamestate.location.system or not gamestate.location.station.name \
+                or not gamestate.location.station.market:
+            logger.warning('System and station info not set in gamestate')
+            return
+
+        modules: List[str] = []
+
+        for module in data.get('modules', {}).values():
+            name = module.get('name', None)
+            sku = module.get('sku', None)
+            if name and (not sku or sku == 'ELITE_HORIZONS_V_PLANETARY_LANDINGS'):
+                if re.match('(^Hpt_|^Int_|_Armour_)', name) and name != 'Int_PlanetApproachSuite':
+                    modules.append(name)
+
+        message = OutfittingMessageSchema(
+            systemName=gamestate.location.system,
+            stationName=gamestate.location.station.name,
+            marketId=gamestate.location.station.market,
+            horizons=gamestate.horizons,
+            timestamp=datetime.datetime.now().isoformat(timespec='seconds') + 'Z',
+            modules=modules,
+        )
+
+        payload_dataclass = EDDNSchema(
+            header=SchemaHeader(
+                uploaderID=gamestate.commander.name or 'unknown',
+            ),
+            schemaRef='https://eddn.edcd.io/schemas/outfitting/2',
+            message=message
+        )
+
+        response = self.send_payload(payload_dataclass.to_dict())
+        if 400 <= response.status_code < 500:
+            logger.error(data)
+
+    @plugins.bind_signal(capi.shipyard_info_signal)
+    def on_capi_shipyard_info_shipyard(self, data: dict):
+        gamestate = get_gamestate()
+
+        if not gamestate.location.system or not gamestate.location.station.name \
+                or not gamestate.location.station.market:
+            logger.warning('System and station info not set in gamestate')
+            return
+
+        ships: List[str] = []
+
+        shipyard_list: Dict[str, Dict[str, Any]] = data.get('ships', {}).get('shipyard_list', {})
+        unavailable_list: List[Dict[str, Any]] = data.get('ships', {}).get('unavailable_list', [])
+
+        for ship in itertools.chain(shipyard_list.values(), unavailable_list):
+            name = ship.get('name', None)
+            if name:
+                ships.append(name)
+
+        message = ShipyardMessageSchema(
+            systemName=gamestate.location.system,
+            stationName=gamestate.location.station.name,
+            marketId=gamestate.location.station.market,
+            horizons=gamestate.horizons,
+            timestamp=datetime.datetime.now().isoformat(timespec='seconds') + 'Z',
+            ships=ships,
+        )
+
+        payload_dataclass = EDDNSchema(
+            header=SchemaHeader(
+                uploaderID=gamestate.commander.name or 'unknown',
+            ),
+            schemaRef='https://eddn.edcd.io/schemas/shipyard/2',
+            message=message
+        )
+
+        response = self.send_payload(payload_dataclass.to_dict())
+        if 400 <= response.status_code < 500:
+            logger.error(data)
+
+    @plugins.bind_signal(capi.market_info_signal)
+    def on_capi_market_info_commodities(self, data: dict):
+        gamestate = get_gamestate()
+
+        if not gamestate.location.system or not gamestate.location.station.name \
+                or not gamestate.location.station.market:
+            logger.warning('System and station info not set in gamestate')
+            return
+
+        commodities: List[Dict[str, Any]] = []
+        economies: List[Dict[str, Any]] = []
+
+        required_fields = ['name', 'meanPrice', 'buyPrice', 'stock', 'stockBracket', 'sellPrice', 'demand',
+                           'demandBracket']
+
+        for commodity in data.get('commodities', []):
+            if not utils.has_keys(commodity, *required_fields) or not commodity.get('name') \
+                    or commodity.get('legality') or commodity.get('categoryname') == 'NonMarketable':
+                continue
+
+            commodity_data = utils.subset(commodity, *required_fields)
+
+            status_flags: List[Union[int, str]] = list(set(filter(None, commodity.get('statusFlags', []))))
+            if status_flags:
+                commodity_data['statusFlags'] = status_flags
+
+            commodities.append(commodity_data)
+
+        for economy in data.get('economies', {}).values():
+            name = economy.get('name')
+            proportion = economy.get('proportion')
+            if name and proportion is not None:
+                economies.append({'name': name, 'proportion': proportion})
+
+        prohibited = {p for p in data.get('prohibited', {}).values() if p}
+
+        optional = {}
+        if prohibited:
+            optional['prohibited'] = list(prohibited)
+
+        message = CommodityMessageSchema(
+            systemName=gamestate.location.system,
+            stationName=gamestate.location.station.name,
+            marketId=gamestate.location.station.market,
+            horizons=gamestate.horizons,
+            timestamp=datetime.datetime.now().isoformat(timespec='seconds') + 'Z',
+            commodities=commodities,
+            economies=economies,
+            optional=optional
+        )
+
+        payload_dataclass = EDDNSchema(
+            header=SchemaHeader(
+                uploaderID=gamestate.commander.name or 'unknown',
+            ),
+            schemaRef='https://eddn.edcd.io/schemas/commodity/3',
+            message=message
+        )
+
+        response = self.send_payload(payload_dataclass.to_dict())
+        if 400 <= response.status_code < 500:
+            logger.error(data)
 
     def get_settings_widget(self):
         return EDDNSettingsTabWidget()

@@ -131,6 +131,10 @@ class EDSMPlugin(BufferedEventsMixin, BasePlugin):
                 except requests.exceptions.ConnectionError:
                     logger.error('ConnectionError second time, give up')
                     logger.error(chunk)
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code >= 500:
+                    logger.warning('EDSM returned ServerError')
+                    return
 
     def patch_event(self, event_line: str, state: GameStateData) -> dict:
         event: dict = json.loads(event_line)
