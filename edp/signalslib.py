@@ -7,9 +7,6 @@ from typing import Type, List, NamedTuple, Dict, Union, Callable
 from edp.thread import StoppableThread
 from edp.utils import is_dict_subset
 
-JOURNAL_EVENT = 'journal event'
-INIT_COMPLETE = 'init complete'
-
 logger = logging.getLogger(__name__)
 
 
