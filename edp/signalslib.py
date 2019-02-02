@@ -1,4 +1,4 @@
-# Define builtin signals
+import copy
 import logging
 import queue
 from types import FunctionType
@@ -82,8 +82,9 @@ class SignalExecutorThread(StoppableThread):
 
 def execute_signal_item(signal_item: SignalExecutionItem):
     for callback in signal_item.callbacks:
+        kwargs = copy.deepcopy(signal_item.kwargs)
         try:
-            callback(**signal_item.kwargs)
+            callback(**kwargs)
         except:
             logger.exception(f'Error calling callback {callback} of signal {signal_item.name}')
 
