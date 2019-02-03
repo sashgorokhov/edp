@@ -82,6 +82,8 @@ def main():
             app.setApplicationVersion(config.VERSION)
             app.setApplicationName(config.APPNAME_SHORT)
 
+            signals.app_created.emit_eager()
+
             window = MainWindow(plugin_manager)
             main_window_created_signal.emit_eager(window=window)
             window.show()
