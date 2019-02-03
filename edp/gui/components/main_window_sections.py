@@ -19,7 +19,7 @@ class SECTIONS:
 
 
 class MainWindowSectionsView:
-    def __init__(self, window: 'MainWindow'):
+    def __init__(self, window):
         self._settings = SimpleSettings.get_insance('main_window_sections')
 
         self.window = window
