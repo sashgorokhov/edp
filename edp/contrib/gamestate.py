@@ -1,3 +1,6 @@
+"""
+http://hosting.zaonce.net/community/journal/v18/Journal_Manual_v18.pdf
+"""
 import collections
 import logging
 import threading
