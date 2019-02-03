@@ -174,7 +174,7 @@ def freeze(c):
     VENV_DIR: Path = LOCAL_TEMP_DIR / 'env'
     PIP: Path = VENV_DIR / 'Scripts' / 'pip.exe'
     c.run(f'virtualenv {VENV_DIR}')
-    c.run(f"{PIP} install -r requirements-dev.txt")
+    c.run(f"{PIP} install -Ur requirements-dev.txt")
     c.run(f"{PIP} freeze > constraints.txt")
     shutil.rmtree(VENV_DIR)
 
