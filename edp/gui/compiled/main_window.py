@@ -59,3 +59,4 @@ class Ui_MainWindow(object):
         self.menuView.setTitle(_translate("MainWindow", "View"))
         self.actionOverview.setText(_translate("MainWindow", "Overview"))
         self.actionEvent_list.setText(_translate("MainWindow", "Event list"))
+
