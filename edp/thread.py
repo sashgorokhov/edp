@@ -1,7 +1,7 @@
 import logging
 import threading
 import time
-from typing import List, Callable
+from typing import List, Callable, Union
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class StoppableThread(threading.Thread):
     def is_stopped(self):
         return self._stopped
 
-    def sleep(self, interval: int):
+    def sleep(self, interval: Union[int, float]):
         while interval > 0 and not self.is_stopped:
             if interval > 1:
                 interval -= 1
@@ -57,6 +57,7 @@ class IntervalRunnerThread(StoppableThread):
 class ThreadManager:
     def __init__(self):
         self._threads: List[StoppableThread] = []
+        self._started = False
 
     def add_interval_thread(self, func: Callable, interval):
         thread = IntervalRunnerThread(func, interval=interval)
@@ -65,12 +66,15 @@ class ThreadManager:
     def add_thread(self, thread: StoppableThread):
         self._threads.append(thread)
         logger.debug('Registered thread %s', thread)
+        if self._started:
+            thread.start()
 
     def add_threads(self, *threads: StoppableThread):
         for thread in threads:
             self.add_thread(thread)
 
     def start(self):
+        self._started = True
         for thread in self._threads:
             try:
                 thread.start()
