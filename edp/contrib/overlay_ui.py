@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Dict
 
 from PyQt5 import QtWidgets
 
@@ -9,7 +9,7 @@ from edp.settings import BaseSettings
 
 
 class OverlaySettings(BaseSettings):
-    pass
+    layout_widgets: Dict[str, str] = {}  # layout name/id -> widget friendly name
 
 
 class OverlaySettingsTabWidget(VLayoutTab):
