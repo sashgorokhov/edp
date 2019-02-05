@@ -221,23 +221,23 @@ class GameOverlayWindow(JournalEventHandlerMixin, Ui_Form, QtWidgets.QWidget):
             self.show()
 
     def show(self):
-        # if not self.ed_window_handler:
-        #     handler = get_ed_window_handler()
-        #     if not handler:
-        #         logger.warning('ED window not found')
-        #         return
-        #     self.ed_window_handler = handler
-        #
-        # focus_handler = win32gui.GetFocus()
-        # if self.ed_window_handler != focus_handler and focus_handler != 0:
-        #     return
-        #
-        # rect = get_ed_window_rect(self.ed_window_handler)
-        # logger.debug(f'ED window rect is {rect}')
-        # self.setFixedSize(rect.h, rect.w)
-        # self.move(rect.x, rect.y)
-        self.setFixedSize(800, 600)
-        self.move(400, 400)
+        if not self.ed_window_handler:
+            handler = get_ed_window_handler()
+            if not handler:
+                logger.warning('ED window not found')
+                return
+            self.ed_window_handler = handler
+
+        focus_handler = win32gui.GetFocus()
+        if self.ed_window_handler != focus_handler and focus_handler != 0:
+            return
+
+        rect = get_ed_window_rect(self.ed_window_handler)
+        logger.debug(f'ED window rect is {rect}')
+        self.setFixedSize(rect.h, rect.w)
+        self.move(rect.x, rect.y)
+        # self.setFixedSize(800, 600)
+        # self.move(400, 400)
         # win32gui.SetFocus(self.ed_window_handler)
         super(GameOverlayWindow, self).show()
 

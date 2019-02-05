@@ -154,3 +154,4 @@ class Ui_Form(object):
         Form.setWindowTitle(_translate("Form", "Form"))
         self.label.setText(_translate("Form", "EDP Overlay UI"))
         self.setup_button.setText(_translate("Form", "Setup"))
+
