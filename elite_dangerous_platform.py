@@ -59,6 +59,9 @@ def main():
             binder.bind(thread.ThreadManager, thread_manager)
             binder.bind(journal.JournalReader, journal_reader)
 
+            for cls, obj in plugin_manager._plugins_cls_map.items():
+                binder.bind(cls, obj)
+
         inject.clear_and_configure(injection_config)
         logger.debug('Injection complete')
 
