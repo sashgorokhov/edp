@@ -81,8 +81,8 @@ def execute_signal_item(signal_item: SignalExecutionItem):
     for callback in signal_item.callbacks:
         try:
             kwargs = copy.deepcopy(signal_item.kwargs)
-        except:
-            logger.debug('Failed to deepcopy signal data', exc_info=True)
+        except Exception as e:
+            logger.debug(f'Failed to deepcopy signal data: {e}')
             kwargs = signal_item.kwargs
         try:
             callback(**kwargs)
