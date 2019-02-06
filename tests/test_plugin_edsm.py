@@ -45,8 +45,6 @@ def test_journal_event(edsm_api, events, status_code):
     data = kwargs['json']
     assert data['commanderName'] == edsm_api._commander_name
     assert data['apiKey'] == edsm_api._api_key
-    assert data['fromSoftware'] == edsm_api.software
-    assert data['fromSoftwareVersion'] == edsm_api.software_version
     assert data['message'] == tuple(events)
 
 
