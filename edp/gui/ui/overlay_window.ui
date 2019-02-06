@@ -103,6 +103,25 @@
                                     <height>20</height>
                                 </size>
                             </property>
+                            <property name="styleSheet">
+                                <string notr="true">QPushButton {
+                                    padding: 3px;
+                                    color: rgb(232, 232, 232);
+                                    background-color: rgb(0, 179, 247);
+                                    border-style: solid;
+                                    }
+
+                                    QPushButton:hover {
+                                    background-color: rgb(10, 139, 214);
+                                    }
+
+                                    QPushButton:pressed {
+                                    color: rgb(63, 63, 63);
+                                    background-color: rgb(232, 232, 232);
+                                    border-color: rgb(232, 232, 232);
+                                    }
+                                </string>
+                            </property>
                             <property name="text">
                                 <string>Setup</string>
                             </property>

@@ -79,6 +79,15 @@ class EDSMApi:
             logger.error(response.text)
             logger.error(events)
 
+    @functools.lru_cache(120)
+    def get_system(self, name: str) -> dict:
+        response = self._session.post('https://www.edsm.net/api-v1/system', json={'systemName': name, 'showId': 1})
+        try:
+            return response.json()
+        except json.JSONDecodeError:
+            logger.exception(f'Cant decode json: {response.text}')
+            return {}
+
 
 T = TypeVar('T')
 

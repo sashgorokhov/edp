@@ -13,6 +13,7 @@ from edp.gui.compiled.overlay_window import Ui_Form
 from edp.gui.components.base import JournalEventHandlerMixin
 from edp.gui.components.overlay_widgets.base import BaseOverlayWidget
 from edp.gui.components.overlay_widgets.manager import get_registered_widgets
+from edp.gui.utils import clear_layout
 from edp.utils import winhotkeys, catcherr
 
 OPACITY_ALMOST_NONE = 0.08
@@ -69,13 +70,6 @@ def get_ed_window_handler() -> Optional[WindowHandler]:
 def get_ed_window_rect(handler: WindowHandler) -> WindowRect:
     rect = win32gui.GetWindowRect(handler)
     return WindowRect(rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1])
-
-
-def clear_layout(layout: QtWidgets.QLayout):
-    while layout.count():
-        item: QtWidgets.QLayoutItem = layout.takeAt(0)
-        widget = item.widget()
-        widget.setParent(None)
 
 
 class OverlayWidgetSelector(QtCore.QObject):
