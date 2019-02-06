@@ -44,21 +44,22 @@ class Ui_Form(object):
         self.setup_button.setMinimumSize(QtCore.QSize(20, 20))
         self.setup_button.setMaximumSize(QtCore.QSize(199999, 20))
         self.setup_button.setStyleSheet("QPushButton {\n"
-                                        "    padding: 3px;\n"
-                                        "    color: rgb(232, 232, 232);\n"
-                                        "    background-color: rgb(0, 179, 247);\n"
-                                        "    border-style: solid;\n"
-                                        "}\n"
+                                        "                                    padding: 3px;\n"
+                                        "                                    color: rgb(232, 232, 232);\n"
+                                        "                                    background-color: rgb(0, 179, 247);\n"
+                                        "                                    border-style: solid;\n"
+                                        "                                    }\n"
                                         "\n"
-                                        "QPushButton:hover {\n"
-                                        "    background-color: rgb(10, 139, 214);\n"
-                                        "}\n"
+                                        "                                    QPushButton:hover {\n"
+                                        "                                    background-color: rgb(10, 139, 214);\n"
+                                        "                                    }\n"
                                         "\n"
-                                        "QPushButton:pressed {\n"
-                                        "    color: rgb(63, 63, 63);\n"
-                                        "    background-color: rgb(232, 232, 232);\n"
-                                        "    border-color:  rgb(232, 232, 232);\n"
-                                        "}")
+                                        "                                    QPushButton:pressed {\n"
+                                        "                                    color: rgb(63, 63, 63);\n"
+                                        "                                    background-color: rgb(232, 232, 232);\n"
+                                        "                                    border-color: rgb(232, 232, 232);\n"
+                                        "                                    }\n"
+                                        "                                ")
         self.setup_button.setCheckable(True)
         self.setup_button.setObjectName("setup_button")
         self.horizontalLayout_2.addWidget(self.setup_button)

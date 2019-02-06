@@ -8,7 +8,6 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
@@ -70,21 +69,22 @@ class Ui_Form(object):
         self.verticalLayout.addLayout(self.horizontalLayout)
         self.search_button = QtWidgets.QPushButton(Form)
         self.search_button.setStyleSheet("QPushButton {\n"
-                                         "    padding: 3px;\n"
-                                         "    color: rgb(232, 232, 232);\n"
-                                         "    background-color: rgb(0, 179, 247);\n"
-                                         "    border-style: solid;\n"
-                                         "}\n"
+                                         "                            padding: 3px;\n"
+                                         "                            color: rgb(232, 232, 232);\n"
+                                         "                            background-color: rgb(0, 179, 247);\n"
+                                         "                            border-style: solid;\n"
+                                         "                            }\n"
                                          "\n"
-                                         "QPushButton:hover {\n"
-                                         "    background-color: rgb(10, 139, 214);\n"
-                                         "}\n"
+                                         "                            QPushButton:hover {\n"
+                                         "                            background-color: rgb(10, 139, 214);\n"
+                                         "                            }\n"
                                          "\n"
-                                         "QPushButton:pressed {\n"
-                                         "    color: rgb(63, 63, 63);\n"
-                                         "    background-color: rgb(232, 232, 232);\n"
-                                         "    border-color:  rgb(232, 232, 232);\n"
-                                         "}")
+                                         "                            QPushButton:pressed {\n"
+                                         "                            color: rgb(63, 63, 63);\n"
+                                         "                            background-color: rgb(232, 232, 232);\n"
+                                         "                            border-color: rgb(232, 232, 232);\n"
+                                         "                            }\n"
+                                         "                        ")
         self.search_button.setObjectName("search_button")
         self.verticalLayout.addWidget(self.search_button)
         self.result_layout = QtWidgets.QVBoxLayout()
@@ -92,23 +92,24 @@ class Ui_Form(object):
         self.result_label_1 = QtWidgets.QLabel(Form)
         self.result_label_1.setStyleSheet("\n"
                                           "\n"
-                                          "QLabel {\n"
-                                          "    color: rgb(232, 232, 232);\n"
-                                          "    padding: 3px;\n"
-                                          "    background-color: rgba(106, 54, 2, 180);\n"
-                                          "}\n"
+                                          "                                    QLabel {\n"
+                                          "                                    color: rgb(232, 232, 232);\n"
+                                          "                                    padding: 3px;\n"
+                                          "                                    background-color: rgba(106, 54, 2, 180);\n"
+                                          "                                    }\n"
                                           "\n"
-                                          "QLabel:hover {\n"
-                                          "    color: rgb(62, 62, 62);\n"
-                                          "    padding: 3px;\n"
-                                          "    background-color: rgb(240, 123, 5);\n"
-                                          "}\n"
+                                          "                                    QLabel:hover {\n"
+                                          "                                    color: rgb(62, 62, 62);\n"
+                                          "                                    padding: 3px;\n"
+                                          "                                    background-color: rgb(240, 123, 5);\n"
+                                          "                                    }\n"
                                           "\n"
-                                          "QLabel:pressed {\n"
-                                          "    color: rgb(63, 63, 63);\n"
-                                          "    background-color: rgb(232, 232, 232);\n"
-                                          "    border-color:  rgb(232, 232, 232);\n"
-                                          "}")
+                                          "                                    QLabel:pressed {\n"
+                                          "                                    color: rgb(63, 63, 63);\n"
+                                          "                                    background-color: rgb(232, 232, 232);\n"
+                                          "                                    border-color: rgb(232, 232, 232);\n"
+                                          "                                    }\n"
+                                          "                                ")
         self.result_label_1.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.result_label_1.setTextFormat(QtCore.Qt.PlainText)
         self.result_label_1.setWordWrap(True)
@@ -117,23 +118,24 @@ class Ui_Form(object):
         self.result_label_2 = QtWidgets.QLabel(Form)
         self.result_label_2.setStyleSheet("\n"
                                           "\n"
-                                          "QLabel {\n"
-                                          "    color: rgb(232, 232, 232);\n"
-                                          "    padding: 3px;\n"
-                                          "    background-color: rgba(106, 54, 2, 180);\n"
-                                          "}\n"
+                                          "                                    QLabel {\n"
+                                          "                                    color: rgb(232, 232, 232);\n"
+                                          "                                    padding: 3px;\n"
+                                          "                                    background-color: rgba(106, 54, 2, 180);\n"
+                                          "                                    }\n"
                                           "\n"
-                                          "QLabel:hover {\n"
-                                          "    color: rgb(62, 62, 62);\n"
-                                          "    padding: 3px;\n"
-                                          "    background-color: rgb(240, 123, 5);\n"
-                                          "}\n"
+                                          "                                    QLabel:hover {\n"
+                                          "                                    color: rgb(62, 62, 62);\n"
+                                          "                                    padding: 3px;\n"
+                                          "                                    background-color: rgb(240, 123, 5);\n"
+                                          "                                    }\n"
                                           "\n"
-                                          "QLabel:pressed {\n"
-                                          "    color: rgb(63, 63, 63);\n"
-                                          "    background-color: rgb(232, 232, 232);\n"
-                                          "    border-color:  rgb(232, 232, 232);\n"
-                                          "}")
+                                          "                                    QLabel:pressed {\n"
+                                          "                                    color: rgb(63, 63, 63);\n"
+                                          "                                    background-color: rgb(232, 232, 232);\n"
+                                          "                                    border-color: rgb(232, 232, 232);\n"
+                                          "                                    }\n"
+                                          "                                ")
         self.result_label_2.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.result_label_2.setTextFormat(QtCore.Qt.PlainText)
         self.result_label_2.setWordWrap(True)
@@ -142,23 +144,24 @@ class Ui_Form(object):
         self.result_label_3 = QtWidgets.QLabel(Form)
         self.result_label_3.setStyleSheet("\n"
                                           "\n"
-                                          "QLabel {\n"
-                                          "    color: rgb(232, 232, 232);\n"
-                                          "    padding: 3px;\n"
-                                          "    background-color: rgba(106, 54, 2, 180);\n"
-                                          "}\n"
+                                          "                                    QLabel {\n"
+                                          "                                    color: rgb(232, 232, 232);\n"
+                                          "                                    padding: 3px;\n"
+                                          "                                    background-color: rgba(106, 54, 2, 180);\n"
+                                          "                                    }\n"
                                           "\n"
-                                          "QLabel:hover {\n"
-                                          "    color: rgb(62, 62, 62);\n"
-                                          "    padding: 3px;\n"
-                                          "    background-color: rgb(240, 123, 5);\n"
-                                          "}\n"
+                                          "                                    QLabel:hover {\n"
+                                          "                                    color: rgb(62, 62, 62);\n"
+                                          "                                    padding: 3px;\n"
+                                          "                                    background-color: rgb(240, 123, 5);\n"
+                                          "                                    }\n"
                                           "\n"
-                                          "QLabel:pressed {\n"
-                                          "    color: rgb(63, 63, 63);\n"
-                                          "    background-color: rgb(232, 232, 232);\n"
-                                          "    border-color:  rgb(232, 232, 232);\n"
-                                          "}")
+                                          "                                    QLabel:pressed {\n"
+                                          "                                    color: rgb(63, 63, 63);\n"
+                                          "                                    background-color: rgb(232, 232, 232);\n"
+                                          "                                    border-color: rgb(232, 232, 232);\n"
+                                          "                                    }\n"
+                                          "                                ")
         self.result_label_3.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.result_label_3.setTextFormat(QtCore.Qt.PlainText)
         self.result_label_3.setWordWrap(True)
@@ -189,3 +192,4 @@ class Ui_Form(object):
         self.result_label_1.setText(_translate("Form", "TextLabel"))
         self.result_label_2.setText(_translate("Form", "TextLabel"))
         self.result_label_3.setText(_translate("Form", "TextLabel"))
+

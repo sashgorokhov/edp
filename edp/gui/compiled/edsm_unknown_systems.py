@@ -8,7 +8,6 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
@@ -99,17 +98,18 @@ class Ui_Form(object):
         sizePolicy.setHeightForWidth(self.status_label.sizePolicy().hasHeightForWidth())
         self.status_label.setSizePolicy(sizePolicy)
         self.status_label.setStyleSheet("QLabel {\n"
-                                        "    color: rgb(240, 123, 5);\n"
-                                        "}\n"
+                                        "                                    color: rgb(240, 123, 5);\n"
+                                        "                                    }\n"
                                         "\n"
                                         "\n"
-                                        "QLabel[status=false]l {\n"
-                                        "    color: rgb(2, 158, 76)\n"
-                                        "}\n"
+                                        "                                    QLabel[status=false]l {\n"
+                                        "                                    color: rgb(2, 158, 76)\n"
+                                        "                                    }\n"
                                         "\n"
-                                        "QLabel[status=true]l {\n"
-                                        "    color: rgb(0, 179, 247)\n"
-                                        "}")
+                                        "                                    QLabel[status=true]l {\n"
+                                        "                                    color: rgb(0, 179, 247)\n"
+                                        "                                    }\n"
+                                        "                                ")
         self.status_label.setObjectName("status_label")
         self.horizontalLayout_2.addWidget(self.status_label)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
@@ -128,3 +128,4 @@ class Ui_Form(object):
         self.system_label.setText(_translate("Form", "..."))
         self.label_4.setText(_translate("Form", "Status:"))
         self.status_label.setText(_translate("Form", "..."))
+
