@@ -1,3 +1,8 @@
+"""
+Static configuration.
+
+Should be simple and typed as much as possible, should not import anything from project sources.
+"""
 import json
 import os
 import sys
