@@ -1,3 +1,4 @@
+import datetime
 import logging
 from pathlib import Path
 from typing import Optional, Dict, Mapping, Sequence, Iterator, TypeVar, Any
@@ -71,3 +72,17 @@ def map_keys(d: Dict[str, Any], strict: bool = False, **key_map: str) -> Dict[st
             result[key_map[key]] = value
 
     return result
+
+
+def to_ed_timestamp(dt: datetime.datetime) -> str:
+    """
+    Convert datetime object to journal format timestamp string
+    """
+    return dt.isoformat(timespec='seconds') + 'Z'
+
+
+def from_ed_timestamp(timestamp: str) -> datetime.datetime:
+    """
+    Convert timestamp string in journal format into datetime object
+    """
+    return datetime.datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ')

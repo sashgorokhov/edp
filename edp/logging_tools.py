@@ -1,3 +1,6 @@
+"""
+Loggin configuration
+"""
 import logging
 import logging.config
 
@@ -7,6 +10,9 @@ from edp import config
 
 
 def configure(enable_sentry: bool = True):
+    """
+    Contifure logging facilites and sentry error reporting
+    """
     config.LOGS_DIR.mkdir(parents=True, exist_ok=True)
     logging.config.dictConfig(LOGGING_CONFIG)
 

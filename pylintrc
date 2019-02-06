@@ -2,6 +2,8 @@
 
 disable=
     broad-except,
-    invalid-name
+    bare-except,
+    invalid-name,
+    logging-fstring-interpolation
 
 max-line-length=120
