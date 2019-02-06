@@ -1,7 +1,6 @@
 import logging
 from typing import Iterator
 
-import inject
 from PyQt5 import QtWidgets
 
 from edp.contrib import edsm, gamestate, eddb
@@ -17,8 +16,6 @@ logger = logging.getLogger(__name__)
 class FindNearestWidget(Ui_Form, BaseOverlayWidget):
     friendly_name = 'Find nearest station'
 
-    edsm_plugin: edsm.EDSMPlugin = inject.attr(edsm.EDSMPlugin)
-
     def __init__(self):
         super(FindNearestWidget, self).__init__()
         self.setupUi(self)
@@ -28,6 +25,7 @@ class FindNearestWidget(Ui_Form, BaseOverlayWidget):
         self.hide_result_labels()
 
         self.eddb_api = eddb.EDDBApi()
+        self.edsm_api = edsm.EDSMApi()
 
     def result_labels(self) -> Iterator[QtWidgets.QLabel]:
         for i in range(self.result_layout.count()):
@@ -49,7 +47,7 @@ class FindNearestWidget(Ui_Form, BaseOverlayWidget):
 
         facility = self.facilities_combobox.currentText()
         state = gamestate.get_gamestate()
-        data = self.edsm_plugin.api.get_system(state.location.system)
+        data = self.edsm_api.get_system(state.location.system)
         system_id = data.get('id', None)
 
         if not system_id:

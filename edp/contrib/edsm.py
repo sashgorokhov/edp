@@ -33,11 +33,9 @@ class EDSMSettingsTabWidget(VLayoutTab):
 
 
 class EDSMApi:
-    software = 'edp'
-    software_version = config.VERSION
     timeout = 10
 
-    def __init__(self, api_key: str, commander_name: str):
+    def __init__(self, api_key: Optional[str] = None, commander_name: Optional[str] = None):
         self._api_key = api_key
         self._commander_name = commander_name
         self._session = requests.Session()
@@ -45,10 +43,7 @@ class EDSMApi:
 
     @classmethod
     def from_settings(cls, settings: EDSMSettings) -> 'EDSMApi':
-        if settings.api_key and settings.commander_name:
-            return cls(settings.api_key, settings.commander_name)
-        raise ValueError(
-            f'Settings not set: api_key={"*" * len(settings.api_key or "")} commander_name={settings.commander_name}')
+        return cls(settings.api_key, settings.commander_name)
 
     @classmethod
     def from_edsm_settings(cls) -> 'EDSMApi':
@@ -60,11 +55,14 @@ class EDSMApi:
         return response.json()
 
     def journal_event(self, *events: dict):
+        if not self._api_key or not self._commander_name:
+            raise ValueError('api key or commander name not set')
+
         data = {
             'commanderName': self._commander_name,
             'apiKey': self._api_key,
-            'fromSoftware': self.software,
-            'fromSoftwareVersion': self.software_version,
+            'fromSoftware': config.APPNAME_LONG,
+            'fromSoftwareVersion': config.VERSION,
             'message': events
         }
         response = self._session.post('https://www.edsm.net/api-journal-v1', json=data, timeout=15)

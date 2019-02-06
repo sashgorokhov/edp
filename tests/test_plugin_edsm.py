@@ -172,19 +172,3 @@ def test_push_events_event_patched_with_state(mock_api, plugin):
     for patched_event in patched_events:
         assert {'_systemAddress', '_systemName', '_systemCoordinates', '_marketId', '_stationName', '_shipId'} \
             .issubset(set(patched_event.keys()))
-
-
-def test_create_api_from_settings_not_enough():
-    s = edsm.EDSMSettings.get_insance()
-
-    with pytest.raises(ValueError):
-        edsm.EDSMApi.from_settings(s)
-
-    s.commander_name = '1'
-
-    with pytest.raises(ValueError):
-        edsm.EDSMApi.from_settings(s)
-
-    s.api_key = '1'
-
-    edsm.EDSMApi.from_settings(s)
