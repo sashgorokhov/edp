@@ -150,7 +150,8 @@ class OverlayWidgetSelector(QtCore.QObject):
 
             index = selector.findText(text)
             if index >= 0:
-                selector.setCurrentIndex(0)
+                if selector.currentIndex() == index:
+                    selector.setCurrentIndex(0)
                 selector.removeItem(index)
 
 
