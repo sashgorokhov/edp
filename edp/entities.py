@@ -1,3 +1,6 @@
+"""
+Define all game and journal entities to have determined and typed behavior
+"""
 from operator import attrgetter, methodcaller
 from typing import Dict, Optional, Tuple, List
 
@@ -14,13 +17,14 @@ class _BaseEntity:
 
     def __setattr__(self, key, value):
         if value is self.__sentinel__:
-            return
+            return None
         if value != getattr(self, key, object()):
             super(_BaseEntity, self).__setattr__('__changed__', True)
         return super(_BaseEntity, self).__setattr__(key, value)
 
     def _dataclass_type_fields(self):
-        for field_name, field in self.__dataclass_fields__.items():
+        # noinspection PyUnresolvedReferences
+        for field_name, field in self.__dataclass_fields__.items():  # pylint: disable=no-member
             if dataclasses.is_dataclass(field.type):
                 obj = getattr(self, field_name)
                 if isinstance(obj, _BaseEntity):
@@ -28,14 +32,18 @@ class _BaseEntity:
 
     @property
     def is_changed(self):
+        """Return True if this dataclass or one of its childs is changed"""
         return self.__changed__ or any(map(attrgetter('is_changed'), self._dataclass_type_fields()))
 
     def reset_changed(self):
+        """Reset changed status on this dataclass and its childs"""
         self.__changed__ = False
         list(map(methodcaller('reset_changed'), self._dataclass_type_fields()))
 
     def clear(self):
-        for field_name, field in self.__dataclass_fields__.items():
+        """Reset all fields to their default values, recursive into children"""
+        # noinspection PyUnresolvedReferences
+        for field_name, field in self.__dataclass_fields__.items():  # pylint: disable=no-member
             value = getattr(self, field_name)
             if dataclasses.is_dataclass(field.type) and isinstance(value, _BaseEntity):
                 value.clear()
@@ -51,12 +59,18 @@ class _BaseEntity:
 
 @dataclasses.dataclass()
 class Commander(_BaseEntity):
+    """Describes commander"""
     name: Optional[str] = None
     frontier_id: Optional[str] = None
 
 
 @dataclasses.dataclass
 class Material(_BaseEntity):
+    """
+    Describes material
+
+    Also defines + and - magics to allow easier materials addition and substitution
+    """
     name: str
     count: int
     category: str
@@ -84,6 +98,9 @@ class Material(_BaseEntity):
 
 @dataclasses.dataclass
 class MaterialStorage(_BaseEntity):
+    """
+    Defines material storage - container for all materials grouped by category.
+    """
     raw: Dict[str, Material] = dataclasses.field(default_factory=dict)
     encoded: Dict[str, Material] = dataclasses.field(default_factory=dict)
     manufactured: Dict[str, Material] = dataclasses.field(default_factory=dict)
@@ -133,6 +150,9 @@ class MaterialStorage(_BaseEntity):
 
 @dataclasses.dataclass
 class Ship(_BaseEntity):
+    """
+    Defines a ship
+    """
     model: Optional[str] = None
     id: Optional[int] = None
     name: Optional[str] = None
@@ -141,6 +161,9 @@ class Ship(_BaseEntity):
 
 @dataclasses.dataclass
 class Rank(_BaseEntity):
+    """
+    Container for rank information
+    """
     combat: Optional[int] = None
     combat_progress: Optional[int] = None
 
@@ -162,6 +185,9 @@ class Rank(_BaseEntity):
 
 @dataclasses.dataclass
 class Reputation(_BaseEntity):
+    """
+    Reputation info
+    """
     empire: Optional[float] = None
     federation: Optional[float] = None
     alliance: Optional[float] = None
@@ -169,6 +195,9 @@ class Reputation(_BaseEntity):
 
 @dataclasses.dataclass
 class Engineer(_BaseEntity):
+    """
+    Defines engineer and commander reputation with him
+    """
     name: str
     id: int
     progress: str
@@ -178,6 +207,9 @@ class Engineer(_BaseEntity):
 
 @dataclasses.dataclass
 class Station(_BaseEntity):
+    """
+    Container for station information
+    """
     market: Optional[int] = None
     name: Optional[str] = None
     type: Optional[str] = None
@@ -189,6 +221,9 @@ class Station(_BaseEntity):
 
 @dataclasses.dataclass
 class Location(_BaseEntity):
+    """
+    Container for location info
+    """
     docked: bool = False
     supercruise: bool = False
     system: Optional[str] = None
