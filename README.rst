@@ -1,8 +1,7 @@
-EDP
-===
+==============================
+Elite Dangerous Platform (EDP)
+==============================
 
-Elite Dangerous Platform
-------------------------
 
 .. image:: https://travis-ci.com/sashgorokhov/edp.svg?branch=master
     :target: https://travis-ci.com/sashgorokhov/edp
@@ -10,4 +9,36 @@ Elite Dangerous Platform
 .. image:: https://img.shields.io/codecov/c/github/sashgorokhov/edp.svg
     :target: https://codecov.io/gh/sashgorokhov/edp
 
-WIP
+--------
+Overview
+--------
+
+This application lets you connect in a simple and convenient way with your favourite online `Elite: Dangerous` services.
+It offers a quality platform for developing `Elite: Dangerous` plugins giving an easy and straitforward way
+for bootstrapping new cool things tied to `ED`.
+
+Built-in plugins:
+
+* EDDB
+* EDDN
+* EDSM
+* Inara
+* CAPI
+* Discord rich presence
+* Game overlay UI
+
+------------
+Installation
+------------
+
+#. Download latest release zip here: https://github.com/sashgorokhov/edp/releases
+#. Extract it to a location of your choice.
+#. Run ``elite_dangerous_platform.exe``
+
+When updating, just replace that directory with updated one.
+
+-------------
+Documentation
+-------------
+
+Full online documentation is available here: https://sashgorokhov.github.io/edp/
