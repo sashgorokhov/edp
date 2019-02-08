@@ -270,3 +270,14 @@ def commits_before_tag(c):
     last_tag = all_tags[-1]
     result = c.run(f'git log --pretty=oneline {previous_tag}..{last_tag}').stdout
     return list(filter(None, result.split('\n')))
+
+
+@task()
+def docs(c):
+    c.run('sphinx-build docs/src/ docs/')
+
+
+@task(docs)
+def update_docs(c):
+    c.run(f'git commit -m "Update docs" .')
+    c.run(f'git push --all')
