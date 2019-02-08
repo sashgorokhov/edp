@@ -274,7 +274,7 @@ def commits_before_tag(c):
 
 @task()
 def docs(c):
-    c.run('sphinx-build docs/src/ docs/')
+    c.run('sphinx-build -v docs/src/ docs/')
 
 
 @task(docs)
