@@ -4,6 +4,9 @@ disable=
     broad-except,
     bare-except,
     invalid-name,
-    logging-fstring-interpolation
+    logging-fstring-interpolation,
+    too-few-public-methods
 
 max-line-length=120
+
+extension-pkg-whitelist=PyQt5
