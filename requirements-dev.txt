@@ -4,4 +4,5 @@
 pyqt5-tools
 pyinstaller
 sphinx
+sphinx-autodoc-typehints
 invoke
