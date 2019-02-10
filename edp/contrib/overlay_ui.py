@@ -13,6 +13,8 @@ class OverlaySettings(BaseSettings):
 
 
 class OverlaySettingsTabWidget(VLayoutTab):
+    friendly_name = 'Overlay UI'
+
     def get_settings_links(self):
         yield from []
 
