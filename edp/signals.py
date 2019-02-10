@@ -1,3 +1,4 @@
+"""Define core signals for generic app events"""
 from edp.signalslib import Signal
 
 init_complete = Signal('init complete')
