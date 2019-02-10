@@ -1,25 +1,48 @@
+"""
+Application settings implementation
+
+This adds simple, declarative and persistant settings.
+
+Example:
+
+    class MySettings(BaseSettings):
+        name: str = 'Alex'
+        age: Optional[int] = None
+
+
+    settings = MySettings.get_instance()
+
+Settings class implements singleton pattern in get_instance() method. Usually you want to get your settings this way.
+It also implements dict interface so all data can be accessed as dict:
+
+    settings['age'] = 1
+
+Data will be automatically flushed on disk upon program termination. Inernally this class uses shelve library to store
+data.
+"""
 import atexit
 import logging
 import shelve
 import uuid
 from collections import UserDict
 from pathlib import Path
-from typing import Union, Optional, Dict, TypeVar, Any
+from typing import Union, Optional, Dict, Any
 
 from edp import config
 from edp.utils import get_default_journal_path
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar('T')
-
 
 def get_settings_path(name: str) -> Path:
+    """Return absolute path to settings with given name"""
     path = (config.SETTINGS_DIR / name)
     return path.with_name(path.name + '.shelve')
 
 
+# pylint: disable=too-many-ancestors
 class BaseSettings(UserDict):
+    """Base class for settings"""
     __setting_per_name__: Dict[str, 'BaseSettings'] = {}
     __attributes__: Dict[str, Any] = {}
 
@@ -40,10 +63,11 @@ class BaseSettings(UserDict):
             elif key in self.__class__.__attributes__:
                 self.data.setdefault(key, self.__class__.__attributes__[key])
 
-        atexit.register(lambda: self._shelve.close())
+        atexit.register(self._shelve.close)
 
     @classmethod
     def get_insance(cls, name: Optional[str] = None):
+        """Return singleton instance of class. Use this instead of direct instantiation of settings"""
         name = name or f'{cls.__module__}.{cls.__name__}'
         if name not in cls.__setting_per_name__:
             path = get_settings_path(name)
@@ -53,23 +77,27 @@ class BaseSettings(UserDict):
     def __setattr__(self, key, value):
         if key in self.__annotations__ and 'data' in self.__dict__:
             self.__setitem__(key, value)
-        else:
-            return super(BaseSettings, self).__setattr__(key, value)
+        return super(BaseSettings, self).__setattr__(key, value)
 
     def __getattr__(self, item):  # type: ignore
         if item in self.__annotations__ and 'data' in self.__dict__:
             return self.data[item]
-        else:
-            return object.__getattribute__(self, item)
+        return object.__getattribute__(self, item)
 
 
 class EDPSettings(BaseSettings):
+    """Elite Dangerous Platform application settings"""
     user_id: str = str(uuid.uuid4())
     plugin_dir: Path = config.BASE_DIR / 'plugins'
     enable_error_reports: bool = True
 
     @property
     def journal_dir(self) -> Path:
+        """
+        Journal dir path. If not set, gets default journal path on windows from app data.
+
+        If not available or not on windows, dir inside edp.config.LOCALAPPDATA_DIR will be created.
+        """
         if 'journal_dir' not in self:
             self['journal_dir'] = get_default_journal_path() or config.LOCALAPPDATA_DIR / 'journal'
         return self['journal_dir']
@@ -80,4 +108,4 @@ class EDPSettings(BaseSettings):
 
 
 class SimpleSettings(BaseSettings):
-    pass
+    """Utility class to be used as persistent dict object"""
