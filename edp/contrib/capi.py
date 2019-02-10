@@ -151,7 +151,7 @@ class CapiState:
 
     STATE_FLOW = {
         STATES.LOGIN_REQUIRED: (STATES.HAS_ACCESS_TOKEN,),
-        STATES.HAS_ACCESS_TOKEN: (STATES.REFRESH_REQUIRED,),
+        STATES.HAS_ACCESS_TOKEN: (STATES.REFRESH_REQUIRED, STATES.LOGIN_REQUIRED),
         STATES.REFRESH_REQUIRED: (STATES.LOGIN_REQUIRED, STATES.HAS_ACCESS_TOKEN)
     }
 
@@ -167,7 +167,7 @@ class CapiState:
 
     def set_state(self, state):
         if state not in self.STATE_FLOW[self._state] and state != self._state:
-            raise ValueError(f'Invalid state transition: {self._state} -> {state}')
+            logger.error(f'Invalid state transition: {self._state} -> {state}')
         self._state = state
 
     @property
@@ -269,6 +269,9 @@ class CapiManager:
             response.raise_for_status()
             data = response.json()
             return TokenInfo.from_data(data)
+        except requests.HTTPError as e:
+            logger.warning(f'HTTPError {e.response.status_code} {e.response.reason} when tried to refresh token: {e.response.text}')
+            return None
         except:
             logger.exception(f'Error refreshing token: '
                              f'{locals()["response"].text if "response" in locals() else "<no response>"}')
