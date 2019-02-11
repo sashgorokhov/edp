@@ -1,8 +1,11 @@
-# http://timgolden.me.uk/python/win32_how_do_i/catch_system_wide_hotkeys.html
+"""
+Register handler for windows hotkeys
+
+http://timgolden.me.uk/python/win32_how_do_i/catch_system_wide_hotkeys.html
+"""
 
 import ctypes
 import logging
-from ctypes import wintypes
 from typing import List, Callable, NamedTuple, Any, Optional
 
 import win32con
@@ -16,12 +19,16 @@ logger = logging.getLogger(__name__)
 
 
 class HotkeyInfo(NamedTuple):
+    """Container for hotkey handler data"""
     action: Callable[[], None]
     key: Any
     modifier: Optional[Any]
 
 
 def signal_emit_action(signal: signalslib.Signal) -> Callable[[], None]:
+    """
+    Helper shortcut for emitting signal on hotkey
+    """
     def wrapper():
         signal.emit()
 
@@ -29,13 +36,16 @@ def signal_emit_action(signal: signalslib.Signal) -> Callable[[], None]:
 
 
 class KeyMessageDispatchThread(thread.StoppableThread):
+    """
+    Thread for processing windows events and executing actions on hotkey events.
+    """
     def __init__(self, hotkey_list: List[HotkeyInfo]):
         super(KeyMessageDispatchThread, self).__init__()
 
         self._hotkey_list = hotkey_list
 
     def run(self):
-        msg = wintypes.MSG()
+        msg = ctypes.wintypes.MSG()
 
         def dummy():
             pass

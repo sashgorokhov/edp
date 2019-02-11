@@ -142,7 +142,7 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
                 logger.exception(f'Failed to process event: {event.raw}')
 
     def process_event(self, event: journal.Event, state: GameStateData) -> EDDNSchema:
-        strip_localized = lambda d: utils.subset(d, *(k for k in d.keys() if not k.endswith('_Localised')))
+        strip_localized = lambda d: utils.dict_subset(d, *(k for k in d.keys() if not k.endswith('_Localised')))
         drop_keys = lambda d, *keys: {k: v for k, v in d.items() if k not in keys}
         filter_faction = lambda d: strip_localized(drop_keys(
             d, 'HappiestSystem', 'HomeSystem', 'MyReputation', 'SquadronFaction')
@@ -282,7 +282,7 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
                     or commodity.get('legality') or commodity.get('categoryname') == 'NonMarketable':
                 continue
 
-            commodity_data = utils.subset(commodity, *required_fields)
+            commodity_data = utils.dict_subset(commodity, *required_fields)
 
             status_flags: List[Union[int, str]] = list(set(filter(None, commodity.get('statusFlags', []))))
             if status_flags:

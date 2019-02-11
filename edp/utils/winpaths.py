@@ -1,15 +1,16 @@
+"""Collection of common windows paths identifiers and helper function to get their paths"""
 import ctypes
 import pathlib
-from ctypes import windll, wintypes  # type: ignore
 from uuid import UUID
 
 
 class GUID(ctypes.Structure):
+    """C structure definition"""
     _fields_ = [
-        ("Data1", wintypes.DWORD),
-        ("Data2", wintypes.WORD),
-        ("Data3", wintypes.WORD),
-        ("Data4", wintypes.BYTE * 8)
+        ("Data1", ctypes.wintypes.DWORD),
+        ("Data2", ctypes.wintypes.WORD),
+        ("Data3", ctypes.wintypes.WORD),
+        ("Data4", ctypes.wintypes.BYTE * 8)
     ]
 
     def __init__(self, uid: UUID):
@@ -20,6 +21,7 @@ class GUID(ctypes.Structure):
 
 
 class KNOWN_FOLDERS:
+    """Container for known folders identifiers"""
     AccountPictures = UUID('{008ca0b1-55b4-4c56-b8a8-4de4b299d3be}')
     AdminTools = UUID('{724EF170-A42D-4FEF-9F26-B60E846FBA4F}')
     ApplicationShortcuts = UUID('{A3918781-E5F2-4890-B3D9-A7E54332328C}')
@@ -117,21 +119,25 @@ class KNOWN_FOLDERS:
 
 
 class UserHandle:
-    current = wintypes.HANDLE(0)
-    common = wintypes.HANDLE(-1)
+    """Container for handle values"""
+    current = ctypes.wintypes.HANDLE(0)
+    common = ctypes.wintypes.HANDLE(-1)
 
 
-_CoTaskMemFree = windll.ole32.CoTaskMemFree
+_CoTaskMemFree = ctypes.windll.ole32.CoTaskMemFree
 _CoTaskMemFree.restype = None
 _CoTaskMemFree.argtypes = [ctypes.c_void_p]
 
-_SHGetKnownFolderPath = windll.shell32.SHGetKnownFolderPath
+_SHGetKnownFolderPath = ctypes.windll.shell32.SHGetKnownFolderPath
 _SHGetKnownFolderPath.argtypes = [
-    ctypes.POINTER(GUID), wintypes.DWORD, wintypes.HANDLE, ctypes.POINTER(ctypes.c_wchar_p)
+    ctypes.POINTER(GUID), ctypes.wintypes.DWORD, ctypes.wintypes.HANDLE, ctypes.POINTER(ctypes.c_wchar_p)
 ]
 
 
-def get_known_folder_path(known_folder_uid: UUID, user_handle: wintypes.HANDLE = UserHandle.current) -> pathlib.Path:
+def get_known_folder_path(
+        known_folder_uid: UUID,
+        user_handle: ctypes.wintypes.HANDLE = UserHandle.current) -> pathlib.Path:
+    """Return Path object for given folder identifier"""
     guid = GUID(known_folder_uid)
     p_path = ctypes.c_wchar_p()
 

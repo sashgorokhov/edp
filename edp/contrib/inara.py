@@ -12,7 +12,7 @@ from edp import journal, config, plugins
 from edp.contrib import gamestate
 from edp.gui.forms.settings_window import VLayoutTab
 from edp.settings import BaseSettings
-from edp.utils import subset, has_keys, map_keys
+from edp.utils import dict_subset, has_keys, map_keys
 from edp.utils.plugins_helpers import BufferedEventsMixin, RoutingSwitchRegistry
 
 logger = logging.getLogger(__name__)
@@ -232,7 +232,7 @@ def on_statistict_event(event: journal.Event) -> InaraEvent:
     return InaraEvent(
         eventName='setCommanderGameStatistics',
         eventTimestamp=event.data['timestamp'],
-        eventData=subset(event.data, 'Combat', 'Bank_Account', 'Crime', 'Smuggling', 'Trading',
+        eventData=dict_subset(event.data, 'Combat', 'Bank_Account', 'Crime', 'Smuggling', 'Trading',
                          'Mining', 'Exploration', 'Passengers', 'Search_And_Rescue', 'Crafting',
                          'Crew', 'Multicrew')
     )
@@ -268,7 +268,7 @@ def on_reputation_event(event: journal.Event) -> InaraEvent:
         eventName='setCommanderReputationMajorFaction',
         eventTimestamp=event.data['timestamp'],
         eventData=[{'majorfactionName': k, 'majorfactionReputation': v / 100}
-                   for k, v in subset(event.data, 'Empire', 'Federation', 'Alliance').items()]
+                   for k, v in dict_subset(event.data, 'Empire', 'Federation', 'Alliance').items()]
     )
 
 
@@ -280,7 +280,7 @@ def on_progress_event(event: journal.Event) -> InaraEvent:
         eventName='setCommanderRankPilot',
         eventTimestamp=event.data['timestamp'],
         eventData=[{'rankName': k, 'rankProgress': v / 100}
-                   for k, v in subset(event.data, *rank_keys).items()]
+                   for k, v in dict_subset(event.data, *rank_keys).items()]
     )
 
 
@@ -292,7 +292,7 @@ def on_rank_event(event: journal.Event) -> InaraEvent:
         eventName='setCommanderRankPilot',
         eventTimestamp=event.data['timestamp'],
         eventData=[{'rankName': k, 'rankValue': v}
-                   for k, v in subset(event.data, *rank_keys).items()]
+                   for k, v in dict_subset(event.data, *rank_keys).items()]
     )
 
 
