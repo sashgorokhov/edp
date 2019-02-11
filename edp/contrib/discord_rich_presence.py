@@ -1,10 +1,10 @@
+"""Discord Rich Presence integration plugin"""
 import datetime
 import functools
 import logging
 from typing import Optional, Dict
 
 import dataclasses
-from PyQt5 import QtWidgets
 
 from edp import plugins, config, signals
 from edp.contrib import gamestate
@@ -16,33 +16,25 @@ logger = logging.getLogger(__name__)
 
 
 class DRPSettings(BaseSettings):
+    """Define DRP settings"""
     enabled: bool = True
     show_location: bool = True
 
 
 class DRPSettingsTabWidget(VLayoutTab):
+    """DRP settings widget"""
     friendly_name = 'Discord Rich Presence'
 
     def get_settings_links(self):
         settings = DRPSettings.get_insance()
 
-        layout = QtWidgets.QVBoxLayout()
-        checkbox = QtWidgets.QCheckBox('Enabled')
-        checkbox.setChecked(settings.enabled)
-        checkbox.stateChanged.connect(lambda state: settings.__setattr__('enabled', state == 2))
-        layout.addWidget(checkbox)
-        yield layout
-
-        layout = QtWidgets.QVBoxLayout()
-        checkbox = QtWidgets.QCheckBox('Show location info')
-        checkbox.setChecked(settings.enabled)
-        checkbox.stateChanged.connect(lambda state: settings.__setattr__('show_location', state == 2))
-        layout.addWidget(checkbox)
-        yield layout
+        yield self.link_checkbox(settings, 'enabled', 'Enabled')
+        yield self.link_checkbox(settings, 'show_location', 'Show location info')
 
 
 @dataclasses.dataclass()
 class DRPState:
+    """DRP state container class"""
     state: str
     details: str
     timestamp_start: Optional[float] = None
@@ -53,6 +45,7 @@ class DRPState:
 
 
 class DiscordRichPresencePlugin(plugins.BasePlugin):
+    """Discord rich presence plugin"""
     def __init__(self):
         self.settings = DRPSettings.get_insance()
         self._current_state: Optional[DRPState] = None
@@ -62,15 +55,19 @@ class DiscordRichPresencePlugin(plugins.BasePlugin):
         return self.settings.enabled
 
     def set_state(self, state: DRPState):
+        """Set current state so it will be flushed to discord in background"""
         state.timestamp_start = datetime.datetime.now().timestamp()
         self._current_state = state
 
+    # pylint: disable=no-self-use
     @functools.lru_cache(1)
     def rpc_client(self):
+        """Return discord rpc client instance"""
         return discord_rpc.WinDiscordIpcClient(config.DISCORD_CLIENT_ID)
 
     @plugins.bind_signal(gamestate.game_state_changed_signal, gamestate.game_state_set_signal)
     def on_game_state_changed(self, state: gamestate.GameStateData):
+        """Handle game state changes"""
         drp_state: Optional[DRPState] = None
 
         if self.settings.show_location:
@@ -78,7 +75,6 @@ class DiscordRichPresencePlugin(plugins.BasePlugin):
         else:
             location = f'Somewhere in space'
 
-        # TODO: Show game mode
         if state.location.docked:
             drp_state = DRPState(f'Docked at {state.location.station.name}', location)
         elif state.location.supercruise:
@@ -94,6 +90,7 @@ class DiscordRichPresencePlugin(plugins.BasePlugin):
 
     @plugins.scheduled(15)
     def update_discord_state(self):
+        """Update discord rich presence state periodically in a minimum allowed interval"""
         state, self._current_state = self._current_state, None
 
         if not state:
@@ -102,6 +99,7 @@ class DiscordRichPresencePlugin(plugins.BasePlugin):
         self.set_activity(state)
 
     def set_activity(self, state: DRPState):
+        """Send state to discord"""
         activity: Dict = {
             'state': state.state,
             'details': state.details,
@@ -132,6 +130,7 @@ class DiscordRichPresencePlugin(plugins.BasePlugin):
 
     @plugins.bind_signal(signals.exiting)
     def on_exit(self):
+        """Close rpc client on application exit"""
         try:
             self.rpc_client().close()
         except:
