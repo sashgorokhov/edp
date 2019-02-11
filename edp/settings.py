@@ -42,7 +42,11 @@ def get_settings_path(name: str) -> Path:
 
 # pylint: disable=too-many-ancestors
 class BaseSettings(UserDict):
-    """Base class for settings"""
+    """
+    Base class for settings
+
+    Settings should be defined as typed class attributes with defaults.
+    """
     __setting_per_name__: Dict[str, 'BaseSettings'] = {}
     __attributes__: Dict[str, Any] = {}
 
