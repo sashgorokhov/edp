@@ -91,7 +91,7 @@ class RoutingSwitchRegistry(Generic[CT, RT]):
     def __init__(self):
         self._callbacks: Dict[str, List[Callable]] = {}
 
-    def register(self, *routing_keys: str, callbacks: Optional[List[CT]] = None) -> Optional[Callable[[CT], CT]]:
+    def register(self, *routing_keys: str, callbacks: Optional[List[CT]] = None):
         """
         Register callback on given routing keys.
 
