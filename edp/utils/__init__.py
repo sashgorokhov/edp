@@ -1,8 +1,10 @@
 """Simple utility functions"""
 import datetime
+import functools
 import logging
+import math
 from pathlib import Path
-from typing import Optional, Dict, Mapping, Sequence, Iterator, TypeVar, Any
+from typing import Optional, Dict, Mapping, Sequence, Iterator, TypeVar, Any, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -109,3 +111,14 @@ def from_ed_timestamp(timestamp: str) -> datetime.datetime:
     Convert timestamp string in journal format into datetime object
     """
     return datetime.datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ')
+
+
+@functools.lru_cache(200)
+def space_distance(point1: Tuple[float, float, float], point2: Tuple[float, float, float]) -> float:
+    """
+    Calculate distance between two points in three-dimensional space
+
+    :param point1: Tuple[x, y, z]
+    :param point2: Tuple[x, y, z]
+    """
+    return math.sqrt((point2[0] - point1[0])**2 + (point2[1] - point1[1])**2 + (point2[2] - point1[2])**2)
