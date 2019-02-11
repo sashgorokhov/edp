@@ -1,3 +1,15 @@
+"""
+Frontier companion API connection. Allows user login without external browser
+
+For user login, it uses QWebEngineView.
+
+CAPI itself uses internal states to properly handle cases of required login, refresh and ok states.
+
+Usually you dont want to instantiate or subclass anything from here, just use signals
+market_info_signal, profile_info_signal, shipyard_info_signal to listen for required info.
+
+This is most complicated module it took way too much time to implement it.
+"""
 import base64
 import datetime
 import hashlib
@@ -36,24 +48,22 @@ shipyard_info_signal = signalslib.Signal('capi shipyard info signal', data=dict)
 
 
 class CapiException(Exception):
-    pass
+    """General CAPI exception that may be rised by routines in this module"""
 
 
 class LoginRequired(CapiException):
-    pass
-
-
-class RefreshRequired(CapiException):
-    pass
+    """Raised when token refreshing is failed"""
 
 
 class TokenInfo(NamedTuple):
+    """Container for access token information"""
     access_token: str
     refresh_token: str
     expires_in: datetime.datetime
 
     @classmethod
     def from_data(cls, data: dict) -> 'TokenInfo':
+        """Create TokenInfo instance from data returned by CAPI token acquisition or refreshing endpoints"""
         return cls(
             access_token=data['access_token'],
             refresh_token=data['refresh_token'],
@@ -62,6 +72,8 @@ class TokenInfo(NamedTuple):
 
 
 def build_authorization_url(client_id: str, redirect_url: Union[str, URL], state: str, challenge: str) -> URL:
+    """Build initial authorization url with given parameters and some defaults"""
+    # pylint: disable=no-member
     return (AUTH_URL / 'auth').with_query(
         response_type='code',
         audience='frontier',
@@ -75,6 +87,7 @@ def build_authorization_url(client_id: str, redirect_url: Union[str, URL], state
 
 
 class CapiSettings(BaseSettings):
+    """Define persistent settings for CAPI plugin"""
     enabled: bool = True
     access_token: Optional[str] = None
     refresh_token: Optional[str] = None
@@ -82,7 +95,12 @@ class CapiSettings(BaseSettings):
 
 
 class CapiAuthWindow(QtWebEngineWidgets.QWebEngineView):
-    REDIRECT_URL: str = 'http://local/redirect_url'
+    """
+    Customized QWebEngineView that loads authorization url and waits for REDIRECT_URL
+
+    on_redirect_url is fired when such url is seen and window closes.
+    """
+    REDIRECT_URL: str = 'http://local/edp_redirect_url'
 
     on_redirect_url = QtCore.pyqtSignal(URL)
 
@@ -92,12 +110,14 @@ class CapiAuthWindow(QtWebEngineWidgets.QWebEngineView):
         self.urlChanged.connect(self.on_url_changed)
 
     def show(self, auth_url: URL):
+        """Show browser window with loaded `auth_url`"""
         logger.info(f'Loading auth url: {auth_url}')
         self.load(QtCore.QUrl(str(auth_url)))
         super(CapiAuthWindow, self).show()
 
     @catcherr
     def on_url_changed(self, url: QtCore.QUrl):
+        """Handle url changed signal and wait for REDIRECT_URL"""
         logger.debug(f'on_url_changed({url.toString()})')
         if url.toString().startswith(self.REDIRECT_URL):
             self.on_redirect_url.emit(URL(url.toString()))
@@ -105,6 +125,7 @@ class CapiAuthWindow(QtWebEngineWidgets.QWebEngineView):
 
 
 class CapiSettingsTabWidget(VLayoutTab):
+    """CAPI plugin settings widget"""
     friendly_name = 'Companion API'
 
     def __init__(self, manager: 'CapiManager'):
@@ -117,7 +138,9 @@ class CapiSettingsTabWidget(VLayoutTab):
         login_required_signal.bind_nonstrict(self.update_status_label)
         refresh_required_signal.bind_nonstrict(self.update_status_label)
 
+    # pylint: disable=unused-argument
     def update_status_label(self, *args, **kwargs):
+        """Change status label according to CAPI connection state"""
         if self._manager.state.is_has_access_token:
             self._status_label.setText('Status: OK')
             self._status_label.setStyleSheet('background-color: rgb(85, 170, 0);')  # green
@@ -144,11 +167,18 @@ class CapiSettingsTabWidget(VLayoutTab):
 
 
 class CapiState:
+    """
+    Describes possible CAPI connection states and their transitions.
+
+    Just a simple FSM implementation.
+    """
     class STATES:
+        """Define states"""
         LOGIN_REQUIRED = 0
         HAS_ACCESS_TOKEN = 1
         REFRESH_REQUIRED = 2
 
+    # Defines states transitions
     STATE_FLOW = {
         STATES.LOGIN_REQUIRED: (STATES.HAS_ACCESS_TOKEN,),
         STATES.HAS_ACCESS_TOKEN: (STATES.REFRESH_REQUIRED, STATES.LOGIN_REQUIRED),
@@ -158,6 +188,7 @@ class CapiState:
     def __init__(self):
         self._settings = CapiSettings.get_insance()
 
+        # Set initial state according to settings
         if self._settings.access_token:
             self._state = self.STATES.HAS_ACCESS_TOKEN
         elif self._settings.refresh_token:
@@ -166,24 +197,33 @@ class CapiState:
             self._state = self.STATES.LOGIN_REQUIRED
 
     def set_state(self, state):
+        """
+        Set state.
+
+        If new state does not match possible transition states, logs error.
+        """
         if state not in self.STATE_FLOW[self._state] and state != self._state:
             logger.error(f'Invalid state transition: {self._state} -> {state}')
         self._state = state
 
     @property
     def is_login_required(self):
+        """Return True if current state is LOGIN_REQUIRED"""
         return self._state == self.STATES.LOGIN_REQUIRED
 
     @property
     def is_refresh_required(self):
+        """Return True if current state is REFRESH_REQUIRED"""
         return self._state == self.STATES.REFRESH_REQUIRED
 
     @property
     def is_has_access_token(self):
+        """Return True if current state is HAS_ACCESS_TOKEN"""
         return self._state == self.STATES.HAS_ACCESS_TOKEN
 
 
 class CapiManager:
+    """Holds main logic of connecting to CAPI and managing its various states and transitions"""
     MAX_RETRIES = 2
 
     def __init__(self):
@@ -202,6 +242,10 @@ class CapiManager:
             self._session.headers['Authorization'] = f'Bearer {self._settings.access_token}'
 
         self._refresh_token_lock = threading.Lock()
+
+        self._cred_state: Optional[str] = None
+        self._cred_verifier: Optional[str] = None
+        self._cred_challenge: Optional[str] = None
 
     def _generate_oauth_creds(self):
         self._cred_state = generate_state()
@@ -270,7 +314,8 @@ class CapiManager:
             data = response.json()
             return TokenInfo.from_data(data)
         except requests.HTTPError as e:
-            logger.warning(f'HTTPError {e.response.status_code} {e.response.reason} when tried to refresh token: {e.response.text}')
+            logger.warning(f'HTTPError {e.response.status_code} {e.response.reason} when tried '
+                           f'to refresh token: {e.response.text}')
             return None
         except:
             logger.exception(f'Error refreshing token: '
@@ -278,6 +323,7 @@ class CapiManager:
             return None
 
     def show_login_window(self):
+        """Show login window with initial auth url and register required callbacks"""
         if not self._window:
             self._window = CapiAuthWindow()
             self._window.on_redirect_url.connect(self._on_redirect_url)
@@ -292,6 +338,11 @@ class CapiManager:
         self._window.show(auth_url)
 
     def do_refresh(self):
+        """
+        Execute token refresh routines
+
+        :raises ValueError: If refresh token is not set
+        """
         if not self._settings.refresh_token:
             raise ValueError('Refresh token not set')
 
@@ -305,14 +356,23 @@ class CapiManager:
             logger.warning('Login required')
             self._settings.access_token = None
             self._set_login_required()
-            return
+            return False
 
         self._set_token(token_info)
         return True
 
     def do_query(self, endpoint: str) -> dict:
+        """
+        Get data from CAPI endpoint.
+
+        Has retries logic that can handle simple cases of token expiration or some occasional api errors.
+
+        :raises LoginRequired: If authentication errors received from api and refreshing failed
+        :raises HTTPError: If response status is 500
+        """
         exc: Optional[Exception] = None
-        for retry_number in range(self.MAX_RETRIES):
+
+        for _ in range(self.MAX_RETRIES):
             try:
                 return self._do_query(endpoint)
             except json.JSONDecodeError as e:
@@ -361,19 +421,24 @@ class CapiManager:
         return data
 
     def get_profile(self) -> dict:
+        """Return profile endpoint data"""
         return self.do_query('profile')
 
     def get_market(self) -> dict:
+        """Return market endpoint data"""
         return self.do_query('market')
 
     def get_shipyard(self) -> dict:
+        """Return shipyard endpoint data"""
         return self.do_query('shipyard')
 
     def get_communitygoals(self) -> dict:
+        """Return communitygoals endpoint data"""
         return self.do_query('communitygoals')
 
 
 class CapiPlugin(plugins.BasePlugin):
+    """CAPI connection plugin"""
     friendly_name = 'Companion API'
 
     def __init__(self):
@@ -390,11 +455,13 @@ class CapiPlugin(plugins.BasePlugin):
 
     @plugins.scheduled(120)
     def do_refresh_token(self):
+        """Periodically try to refresh token if required """
         if self._manager.state.is_refresh_required:
             self._manager.do_refresh()
 
     @plugins.bind_signal(journal.journal_event_signal)
     def on_journal_event(self, event: journal.Event):
+        """Handle journal events"""
         if not self._manager.state.is_has_access_token:
             return
 
@@ -418,10 +485,12 @@ class CapiPlugin(plugins.BasePlugin):
 
     @plugins.bind_signal(signals.init_complete)
     def on_init_complete(self):
+        """Refresh token on initialization if refresh required"""
         if self._manager.state.is_refresh_required:
             self._manager.do_refresh()
 
     @plugins.bind_signal(main_window.main_window_created_signal)
     def on_window_created(self, window: main_window.MainWindow):
+        """Show login window on startup if login is required"""
         if self._manager.state.is_login_required:
             window.on_showed.connect(lambda *args, **kwargs: catcherr(self._manager.show_login_window)())

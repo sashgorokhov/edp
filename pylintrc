@@ -5,7 +5,9 @@ disable=
     bare-except,
     invalid-name,
     logging-fstring-interpolation,
-    too-few-public-methods
+    too-few-public-methods,
+    too-many-ancestors,
+    too-many-instance-attributes
 
 max-line-length=120
 
