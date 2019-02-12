@@ -31,8 +31,7 @@ class GameStateData(entities._BaseEntity):
     running: bool = False
     version: VersionInfo = dataclasses.field(default_factory=VersionInfo)
     horizons: bool = False
-
-    # TODO: game mode: solo or open
+    solo: bool = False
 
     def __init__(self):
         self.engineers = {}
@@ -129,6 +128,8 @@ def load_game_event(event: Event, state: GameStateData):
     state.credits = data['Credits']
 
     state.horizons = data['Horizons']
+
+    state.solo = data.get('GameMode', 'Solo') == 'Solo'
 
 
 @mutation_registry.register('Rank')
