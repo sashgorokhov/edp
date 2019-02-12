@@ -1,3 +1,4 @@
+"""Section with table that shows recently collected materials and their total count"""
 import logging
 from collections import OrderedDict
 
@@ -10,13 +11,15 @@ logger = logging.getLogger(__name__)
 
 
 class MaterialsStorageModel(QtCore.QAbstractTableModel):
+    """Qt model implementation for materials"""
     maximum_length = 10
 
     def __init__(self, *args, **kwargs):
         super(MaterialsStorageModel, self).__init__(*args, **kwargs)
-        self.materials: OrderedDict[str, entities.Material] = OrderedDict()
+        self.materials = OrderedDict()  # type: OrderedDict[str, entities.Material]
 
     def add_material(self, material: entities.Material):
+        """Add material to model"""
         self.beginResetModel()
         if material.name in self.materials:
             self.materials[material.name] += material
@@ -26,39 +29,52 @@ class MaterialsStorageModel(QtCore.QAbstractTableModel):
         self.endResetModel()
 
     def modelReset(self):
+        """Remove all materials from model"""
         self.beginResetModel()
         self.materials.clear()
         self.endResetModel()
 
     @utils.catcherr
     def data(self, index: QtCore.QModelIndex, role=None):
+        """Return model data by index"""
         if not index.isValid():
-            return
+            return None
         if index.row() > len(self.materials) or index.row() < 0:
-            return
+            return None
         material = self.materials[list(reversed(list(self.materials.keys())))[index.row()]]
         if role == QtCore.Qt.DisplayRole:
             if index.column() == 0:
                 return material.name
-            elif index.column() == 1:
+            if index.column() == 1:
                 return material.count
 
-    def rowCount(self, parent=None, *args, **kwargs):
+        return None
+
+    # pylint: disable=unused-argument
+    def rowCount(self, *args, **kwargs):
+        """Return row count. Capped by maximum_length"""
         count = len(self.materials)
         return count if count <= self.maximum_length else self.maximum_length
 
-    def columnCount(self, parent=None, *args, **kwargs):
+    # pylint: disable=unused-argument,no-self-use
+    def columnCount(self, *args, **kwargs):
+        """Return column count"""
         return 2
 
+    # pylint: disable=no-self-use
     def headerData(self, section, orientation, role=None):
+        """Return headers names"""
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
             if section == 0:
                 return 'Material'
-            elif section == 1:
+            if section == 1:
                 return 'Count'
+
+        return None
 
 
 class MaterialsCollectedComponent(BaseMainWindowSection):
+    """Materials collected component"""
     name = 'Materials Collected'
 
     def __init__(self):
@@ -69,7 +85,7 @@ class MaterialsCollectedComponent(BaseMainWindowSection):
 
         button = QtWidgets.QPushButton('clear')
         button.setMaximumHeight(20)
-        button.clicked.connect(lambda: self.storage_model.modelReset())
+        button.clicked.connect(self.storage_model.modelReset)
         self.layout().addWidget(button)
 
         self.table_view = QtWidgets.QTableView(self)
@@ -91,12 +107,13 @@ class MaterialsCollectedComponent(BaseMainWindowSection):
         self.layout().addWidget(self.table_view)
 
     def on_journal_event(self, event: journal.Event):
+        """On MaterialCollected add material to model"""
         if event.name != 'MaterialCollected':
             return
 
-        category: str = event.data['Category']  # type: ignore
-        name: str = event.data['Name']  # type: ignore
-        count: int = event.data['Count']  # type: ignore
+        category = event.data['Category']  # type: ignore
+        name = event.data['Name']  # type: ignore
+        count = event.data['Count']  # type: ignore
 
         self.storage_model.add_material(entities.Material(name, count, category))
         self.table_view.update()

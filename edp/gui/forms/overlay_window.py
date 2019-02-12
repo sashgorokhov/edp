@@ -1,12 +1,14 @@
+"""Overlay window GUI"""
 import enum
 import logging
-import win32gui
 from functools import partial
 from typing import NamedTuple, Optional, NewType, Iterator, Dict, Mapping
 
 import inject
 import win32con
 from PyQt5 import QtWidgets, QtCore
+
+import win32gui
 
 from edp import config, thread, signalslib, journal
 from edp.gui.compiled.overlay_window import Ui_Form
@@ -32,6 +34,7 @@ hotkey_list = [
 
 
 class WindowRect(NamedTuple):
+    """Container for window position and size information"""
     x: int
     y: int
     h: int
@@ -39,6 +42,7 @@ class WindowRect(NamedTuple):
 
 
 class GuiFocus(enum.Enum):
+    """Values of GuiFocus field of Status journal event"""
     NoFocus = 0
     InternalPanel = 1
     ExternalPanel = 2
@@ -53,8 +57,10 @@ WindowHandler = NewType('WindowHandler', int)
 
 
 def get_ed_window_handler() -> Optional[WindowHandler]:
+    """Return window handler for elite dangerous game window"""
     handler: Optional[WindowHandler] = None
 
+    # pylint: disable=unused-argument
     def callback(hwnd: WindowHandler, extra):
         nonlocal handler
 
@@ -68,11 +74,13 @@ def get_ed_window_handler() -> Optional[WindowHandler]:
 
 
 def get_ed_window_rect(handler: WindowHandler) -> WindowRect:
+    """Return WindowRect of elite dangerous window"""
     rect = win32gui.GetWindowRect(handler)
     return WindowRect(rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1])
 
 
 class OverlayWidgetSelector(QtCore.QObject):
+    """Component responsible for overlay ui widget selection"""
     def __init__(self, layouts: Mapping[str, QtWidgets.QLayout], widgets: Iterator[BaseOverlayWidget]):
         super(OverlayWidgetSelector, self).__init__()
         self._layouts = layouts
@@ -83,6 +91,7 @@ class OverlayWidgetSelector(QtCore.QObject):
         self._widget_selectors: Dict[str, QtWidgets.QComboBox] = {}
 
     def setup(self):
+        """Put configured widgets on layouts"""
         if self._widget_selectors:
             self._settings.layout_widgets.clear()
 
@@ -111,6 +120,7 @@ class OverlayWidgetSelector(QtCore.QObject):
 
     @catcherr
     def create_widget_selectors(self):
+        """Create QComboBox widgets on overlay ui to allow to select widgets and their positions"""
         for layout_name, layout in self._layouts.items():
             clear_layout(layout)
             combobox = self._create_widget_selector()
@@ -126,6 +136,7 @@ class OverlayWidgetSelector(QtCore.QObject):
                 combobox.setCurrentText(widget_name)
 
     def _create_widget_selector(self) -> QtWidgets.QComboBox:
+        """Create QComboBox widget selector"""
         combobox = QtWidgets.QComboBox()
         combobox.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
         combobox.addItem('---')
@@ -137,6 +148,7 @@ class OverlayWidgetSelector(QtCore.QObject):
 
     @catcherr
     def _on_selector_text_changed(self, combobox: QtWidgets.QComboBox, text: str):
+        """Handle selector text changed event"""
         if text == '---':
             for selector in self._widget_selectors.values():
                 for widget_name in self._widgets:
@@ -156,6 +168,7 @@ class OverlayWidgetSelector(QtCore.QObject):
 
 
 class GameOverlayWindow(JournalEventHandlerMixin, Ui_Form, QtWidgets.QWidget):
+    """Overlay UI window"""
     thread_manager: thread.ThreadManager = inject.attr(thread.ThreadManager)
 
     toggle_visibility_signal = QtCore.pyqtSignal()
@@ -174,6 +187,7 @@ class GameOverlayWindow(JournalEventHandlerMixin, Ui_Form, QtWidgets.QWidget):
 
         self.toggle_visibility_signal.connect(self.toggle_visibility)
 
+        # pylint: disable=unnecessary-lambda
         toggle_overlay_signal.bind_nonstrict(lambda: self.toggle_visibility_signal.emit())
 
         self.thread_manager.add_thread(
@@ -181,21 +195,24 @@ class GameOverlayWindow(JournalEventHandlerMixin, Ui_Form, QtWidgets.QWidget):
         )
 
         widgets = list(get_registered_widgets())
+        # pylint: disable=undefined-variable
         logger.info(f'Registered overlay widgets: {[w.friendly_name for w in widgets]}')
 
         self._widget_selector = OverlayWidgetSelector(self.get_layouts(), widgets)
         self._widget_selector.setup()
 
-        self.setup_button.toggled.connect(self.on_setup_buttin_toggled)
+        self.setup_button.toggled.connect(self.on_setup_button_toggled)
 
     @catcherr
-    def on_setup_buttin_toggled(self, state: bool):
+    def on_setup_button_toggled(self, state: bool):
+        """Depending on setup button state, show either widget selectors or placed and configured widgets"""
         if state:
             self._widget_selector.create_widget_selectors()
         else:
             self._widget_selector.setup()
 
     def get_layouts(self) -> Dict[str, QtWidgets.QLayout]:
+        """Return window layouts for widgets placement"""
         return {
             'top_left': self.vlayout_top_left,
             'top_center': self.vlayout_top_center,
@@ -210,12 +227,18 @@ class GameOverlayWindow(JournalEventHandlerMixin, Ui_Form, QtWidgets.QWidget):
 
     @catcherr
     def toggle_visibility(self):
+        """Hide or show window depending on current visibility"""
         if self.isVisible():
             self.hide()
         else:
             self.show()
 
     def show(self):
+        """
+        Show overlay UI
+
+        This searches for elite dangerous game window and resizes overlay window to fully cover ED window.
+        """
         if not self.ed_window_handler:
             handler = get_ed_window_handler()
             if not handler:
@@ -224,7 +247,7 @@ class GameOverlayWindow(JournalEventHandlerMixin, Ui_Form, QtWidgets.QWidget):
             self.ed_window_handler = handler
 
         focus_handler = win32gui.GetFocus()
-        if self.ed_window_handler != focus_handler and focus_handler != 0:
+        if focus_handler not in (self.ed_window_handler, 0):
             return
 
         rect = get_ed_window_rect(self.ed_window_handler)
@@ -237,6 +260,7 @@ class GameOverlayWindow(JournalEventHandlerMixin, Ui_Form, QtWidgets.QWidget):
         super(GameOverlayWindow, self).show()
 
     def on_journal_event(self, event: journal.Event):
+        """Handle journal events"""
         if event.name == 'Status':
             gui_focus = GuiFocus(event.data.get('GuiFocus', 0))
             if gui_focus is not GuiFocus.NoFocus:
@@ -244,8 +268,12 @@ class GameOverlayWindow(JournalEventHandlerMixin, Ui_Form, QtWidgets.QWidget):
             else:
                 self.setWindowOpacity(OPACITY_HALF)
 
+    # pylint: disable=unused-argument
     def enterEvent(self, *args, **kwargs):
+        """Set full opacity when mouse enters overlay ui element"""
         self.setWindowOpacity(OPACITY_FULL)
 
+    # pylint: disable=unused-argument
     def leaveEvent(self, *args, **kwargs):
+        """Set half opacity when mouse leaves overlay ui element"""
         self.setWindowOpacity(OPACITY_HALF)

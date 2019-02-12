@@ -1,3 +1,4 @@
+"""Section with list of journal events read by application"""
 import logging
 
 import inject
@@ -10,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class SimpleEventsListComponent(BaseMainWindowSection):
+    """Events list component"""
     name = 'Simple Events List'
 
     plugin_proxy: plugins.PluginProxy = inject.attr(plugins.PluginProxy)
@@ -31,6 +33,7 @@ class SimpleEventsListComponent(BaseMainWindowSection):
         self.layout().addWidget(self.list_widget)
 
     def on_journal_event(self, event: journal.Event):
+        """Add journal event name to list widget"""
         self.list_widget.insertItem(0, event.name)
         count = self.list_widget.count()
         if count > 10:

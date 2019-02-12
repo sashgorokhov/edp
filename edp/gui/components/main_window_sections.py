@@ -1,3 +1,4 @@
+"""Component for managing widget sections on main window surface"""
 import collections
 import logging
 from functools import partial
@@ -12,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class SECTIONS:
+    """Sections names"""
     MAIN = 'main'
     PLUGINS = 'plugins'
 
@@ -19,6 +21,7 @@ class SECTIONS:
 
 
 class MainWindowSectionsView:
+    """Manager of sections"""
     def __init__(self, window):
         self._settings = SimpleSettings.get_insance('main_window_sections')
 
@@ -33,6 +36,7 @@ class MainWindowSectionsView:
             self._section_separators[section] = self.window.menuView.addSeparator()
 
     def add_component(self, component_cls: Type[BaseMainWindowSection], section=SECTIONS.MAIN):
+        """Add section component to section"""
         if component_cls.name is None:
             logger.warning(f'Section component {component_cls} does not define `name` attribute')
 
@@ -59,12 +63,14 @@ class MainWindowSectionsView:
             self.add_component_on_layout(component)
 
     def add_horizontal_line(self):
+        """Create horizontal line on layout"""
         line = QtWidgets.QFrame()
         line.setFrameShape(QtWidgets.QFrame.HLine)
         line.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.layout.addWidget(line)
 
     def add_component_on_layout(self, component: BaseMainWindowSection):
+        """Add section component on layout"""
         # remove stretch
         self.layout.removeItem(self.layout.itemAt(self.layout.count() - 1))
         if self.layout.count() > 0:
@@ -74,6 +80,7 @@ class MainWindowSectionsView:
         self.layout.addStretch(1)
 
     def remove_horizontal_line(self, i):
+        """Remove horizontal line from layout"""
         item = self.layout.itemAt(i)
         widget = item.widget()
         if widget:
@@ -81,6 +88,7 @@ class MainWindowSectionsView:
             widget.deleteLater()
 
     def remove_component_on_layout(self, component: BaseMainWindowSection):
+        """Remove specific component from layout"""
         i = self.layout.indexOf(component)
         if i == 0:
             self.remove_horizontal_line(i + 1)
@@ -90,6 +98,7 @@ class MainWindowSectionsView:
         component.setVisible(False)
 
     def on_section_action_toggled(self, toggled: bool, action: QtWidgets.QAction, component: BaseMainWindowSection):
+        """Show or hide specific section component"""
         try:
             if toggled:
                 self.add_component_on_layout(component)

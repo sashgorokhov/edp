@@ -1,3 +1,8 @@
+"""
+'Unknown systems' widget
+
+Poll EDSM for current targeted system. Show information if it found or not.
+"""
 from edp import journal
 from edp.contrib import edsm
 from edp.gui.compiled.edsm_unknown_systems import Ui_Form
@@ -8,6 +13,7 @@ from edp.gui.components.overlay_widgets.manager import register
 
 @register
 class UnknownSystemsWidget(Ui_Form, JournalEventHandlerMixin, BaseOverlayWidget):
+    """Unknown systems widget"""
     friendly_name = 'EDSM unknown systems'
 
     def __init__(self):
@@ -17,6 +23,7 @@ class UnknownSystemsWidget(Ui_Form, JournalEventHandlerMixin, BaseOverlayWidget)
         self.edsm_api = edsm.EDSMApi()
 
     def on_journal_event(self, event: journal.Event):
+        """Poll EDSM for system info on FSDTarget journal event"""
         if not self.enabled_checkbox.isChecked():
             return
 

@@ -1,3 +1,8 @@
+"""
+'Find nearest' overlay widget
+
+This allows to search for nearest station with required facilities.
+"""
 import logging
 from typing import Iterator
 
@@ -14,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 @register
 class FindNearestWidget(Ui_Form, BaseOverlayWidget):
+    """Find nearest station widget"""
     friendly_name = 'Find nearest station'
 
     def __init__(self):
@@ -28,21 +34,25 @@ class FindNearestWidget(Ui_Form, BaseOverlayWidget):
         self.edsm_api = edsm.EDSMApi()
 
     def result_labels(self) -> Iterator[QtWidgets.QLabel]:
+        """Return labels where found stations will be shown"""
         for i in range(self.result_layout.count()):
             item: QtWidgets.QLayoutItem = self.result_layout.itemAt(i)
             label: QtWidgets.QLabel = item.widget()
             yield label
 
     def hide_result_labels(self):
+        """Hide result labels"""
         for label in self.result_labels():
             label.hide()
 
     def show_result_labels(self):
+        """Show result labels on screen"""
         for label in self.result_labels():
             label.show()
 
     @catcherr
     def search_button_clicked(self):
+        """Perform a search and show result labels"""
         self.hide_result_labels()
 
         facility = self.facilities_combobox.currentText()

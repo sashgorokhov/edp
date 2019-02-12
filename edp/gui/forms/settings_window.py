@@ -1,3 +1,4 @@
+"""Settings window"""
 from pathlib import Path
 from typing import Optional, Any, Callable, Union, Type, Iterator
 
@@ -8,12 +9,16 @@ from edp.settings import EDPSettings
 
 
 class BaseTab(QtWidgets.QWidget):
+    """Base settings tab widget"""
     friendly_name: Optional[str] = None
 
     def get_friendly_name(self):
+        """Return settings tab name"""
         return self.friendly_name or self.__class__.__name__
 
+    # pylint: disable=no-self-use
     def link_checkbox(self, settings, field, label=None) -> QtWidgets.QHBoxLayout:
+        """Return layout with checkbox linked to settings field"""
         label = label or field
         layout = QtWidgets.QHBoxLayout()
         checkbox = QtWidgets.QCheckBox()
@@ -24,8 +29,10 @@ class BaseTab(QtWidgets.QWidget):
         layout.addStretch(1)
         return layout
 
+    # pylint: disable=no-self-use
     def link_line_edit(self, settings, field, label=None,
                        settype: Union[Callable[[str], Any], Type] = str) -> QtWidgets.QHBoxLayout:
+        """Return layout with QLineEdit linked to settings field"""
         label = label or field
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(QtWidgets.QLabel(label))
@@ -38,6 +45,7 @@ class BaseTab(QtWidgets.QWidget):
         return layout
 
     def link_directory_dialog(self, settings, field, label_text=None) -> QtWidgets.QHBoxLayout:
+        """Return layout with button which shows directory picking dialog linked to settings field"""
         label_text = label_text or field
         layout = QtWidgets.QHBoxLayout()
         label = QtWidgets.QLabel(label_text)
@@ -62,11 +70,14 @@ class BaseTab(QtWidgets.QWidget):
             QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum))
         return layout
 
+    # pylint: disable=no-self-use
     def get_settings_links(self) -> Iterator[QtWidgets.QLayout]:
+        """Return generator which yields layouts that will be added on settings tab layout"""
         yield from []
 
 
 class VLayoutTab(BaseTab):
+    """Settings tab with vertical layout"""
     def __init__(self):
         super(VLayoutTab, self).__init__()
         layout = QtWidgets.QVBoxLayout()
@@ -80,6 +91,7 @@ class VLayoutTab(BaseTab):
 
 
 class TabGeneral(VLayoutTab):
+    """EDP application settings tab"""
     friendly_name = 'General'
 
     def get_settings_links(self):
@@ -103,6 +115,7 @@ class TabGeneral(VLayoutTab):
 
 
 class SettingsWindow(QtWidgets.QTabWidget):
+    """Settings window"""
     def __init__(self, plugin_manager: PluginManager):
         super(SettingsWindow, self).__init__()
         self.setWindowTitle('EDP - Settings')
@@ -115,6 +128,7 @@ class SettingsWindow(QtWidgets.QTabWidget):
         for tab_widget in plugin_manager.get_settings_widgets():
             self.add_tab_widget(tab_widget)
 
-    def add_tab_widget(self, tab_widget: QtWidgets.QWidget):
+    def add_tab_widget(self, tab_widget: BaseTab):
+        """Add widget as tab"""
         tab_widget.setParent(self)
         self.addTab(tab_widget, tab_widget.get_friendly_name())

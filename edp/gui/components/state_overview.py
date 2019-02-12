@@ -1,3 +1,4 @@
+"""Simple game state overview window section"""
 import inject
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
@@ -8,6 +9,7 @@ from edp.plugins import PluginProxy
 
 
 class StateOverviewComponent(BaseMainWindowSection):
+    """State overview component"""
     name = 'State Overview'
 
     set_game_state_signal = pyqtSignal(gamestate.GameStateData)
@@ -41,6 +43,7 @@ class StateOverviewComponent(BaseMainWindowSection):
 
         self.set_game_state_signal.connect(self.on_set_game_state_signal)
 
+        # pylint: disable=unnecessary-lambda
         signal_wrapper = lambda state: self.set_game_state_signal.emit(state)
         gamestate.game_state_set_signal.bind_nonstrict(signal_wrapper)
         gamestate.game_state_changed_signal.bind_nonstrict(signal_wrapper)
@@ -51,6 +54,7 @@ class StateOverviewComponent(BaseMainWindowSection):
 
     @pyqtSlot(gamestate.GameStateData)
     def on_set_game_state_signal(self, state: gamestate.GameStateData):
+        """Handle game state changes and update labels"""
         self.commander_label.setText(state.commander.name)
         self.ship_label.setText(state.ship.name or state.ship.model or state.ship.ident or 'Unknown')
         self.system_label.setText(state.location.system)

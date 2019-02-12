@@ -1,3 +1,9 @@
+"""
+Main application window form
+
+Signals:
+- main_window_created_signal: sent when main window is created
+"""
 import logging
 
 from PyQt5 import QtWidgets, QtCore
@@ -12,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class MainWindow(Ui_MainWindow, QtWidgets.QMainWindow):
+    """Application main window"""
     on_showed = QtCore.pyqtSignal()
 
     def __init__(self, plugin_manager: PluginManager):
@@ -38,10 +45,13 @@ class MainWindow(Ui_MainWindow, QtWidgets.QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
 
     def show(self):
+        """Show window and emit on_showed signal"""
         self.on_showed.emit()
         super(MainWindow, self).show()
 
+    # pylint: disable=unused-argument
     def closeEvent(self, *args, **kwargs):
+        """Terminate application if main window closed"""
         self._app.quit()
 
 
