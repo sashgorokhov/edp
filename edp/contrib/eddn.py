@@ -1,3 +1,16 @@
+"""
+EDDN integration plugin
+
+Supported schemas:
+
+- outfitting-v2.0
+- shipyard-v2.0
+- commodity-v3.0
+- journal-v1.0
+
+
+Connects to CAPI signals to receive its information.
+"""
 import datetime
 import itertools
 import logging
@@ -20,22 +33,25 @@ logger = logging.getLogger(__name__)
 
 @dataclasses.dataclass
 class SchemaHeader:
+    """Schema header container"""
     uploaderID: str
     softwareName: str = config.APPNAME_LONG
     softwareVersion: str = config.VERSION
 
 
 class _SchemaMessage:
-    pass
+    """Base schema message. For typing."""
 
 
 @dataclasses.dataclass
 class EDDNSchema:
+    """Root eddn schema container"""
     header: SchemaHeader
     message: _SchemaMessage
     schemaRef: str
 
     def to_dict(self) -> Dict:
+        """Convert dataclass schema to dictionary suitable for eddn api"""
         payload_dict = dataclasses.asdict(self)
         payload_dict['$schemaRef'] = payload_dict.pop('schemaRef')
         message_dict = payload_dict.pop('message')
@@ -48,6 +64,7 @@ class EDDNSchema:
 # https://github.com/EDSM-NET/EDDN/blob/master/schemas/blackmarket-v1.0.json
 @dataclasses.dataclass
 class BlackmarketMessageSchema(_SchemaMessage):
+    """Blackmarket schema container"""
     systemName: str
     stationName: str
     marketId: int
@@ -60,6 +77,7 @@ class BlackmarketMessageSchema(_SchemaMessage):
 # https://github.com/EDSM-NET/EDDN/blob/master/schemas/outfitting-v2.0.json
 @dataclasses.dataclass
 class OutfittingMessageSchema(_SchemaMessage):
+    """Outfitting schema container"""
     systemName: str
     stationName: str
     marketId: int
@@ -71,6 +89,7 @@ class OutfittingMessageSchema(_SchemaMessage):
 # https://github.com/EDSM-NET/EDDN/blob/master/schemas/shipyard-v2.0.json
 @dataclasses.dataclass
 class ShipyardMessageSchema(_SchemaMessage):
+    """Shipyard schema container"""
     systemName: str
     stationName: str
     marketId: int
@@ -82,6 +101,7 @@ class ShipyardMessageSchema(_SchemaMessage):
 # https://github.com/EDSM-NET/EDDN/blob/master/schemas/commodity-v3.0.json
 @dataclasses.dataclass
 class CommodityMessageSchema(_SchemaMessage):
+    """Commodity schema container"""
     systemName: str
     stationName: str
     marketId: int
@@ -95,6 +115,7 @@ class CommodityMessageSchema(_SchemaMessage):
 # https://github.com/EDSM-NET/EDDN/blob/master/schemas/journal-v1.0.json
 @dataclasses.dataclass
 class JournalMessageSchema(_SchemaMessage):
+    """Journal schema container"""
     timestamp: str
     event: str
     StarSystem: str
@@ -105,10 +126,12 @@ class JournalMessageSchema(_SchemaMessage):
 
 
 class EDDNSettings(BaseSettings):
+    """EDDN plugin settings"""
     enabled: bool = True
 
 
 class EDDNSettingsTabWidget(VLayoutTab):  # pragma: no cover
+    """Eddn plugin settings widget"""
     friendly_name = 'EDDN'
 
     def get_settings_links(self):
@@ -118,6 +141,7 @@ class EDDNSettingsTabWidget(VLayoutTab):  # pragma: no cover
 
 
 class EDDNPlugin(BufferedEventsMixin, BasePlugin):
+    """EDDN plugin"""
     def __init__(self):
         super(EDDNPlugin, self).__init__()
 
@@ -141,12 +165,14 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
             except:
                 logger.exception(f'Failed to process event: {event.raw}')
 
+    # pylint: disable=no-self-use
     def process_event(self, event: journal.Event, state: GameStateData) -> EDDNSchema:
+        """Process journal events into journal message"""
         strip_localized = lambda d: utils.dict_subset(d, *(k for k in d.keys() if not k.endswith('_Localised')))
         drop_keys = lambda d, *keys: {k: v for k, v in d.items() if k not in keys}
         filter_faction = lambda d: strip_localized(drop_keys(
-            d, 'HappiestSystem', 'HomeSystem', 'MyReputation', 'SquadronFaction')
-        )
+            d, 'HappiestSystem', 'HomeSystem', 'MyReputation', 'SquadronFaction'
+        ))
 
         optional = drop_keys(event.data, "ActiveFine", "CockpitBreach", "BoostUsed",
                              "FuelLevel", "FuelUsed", "JumpDist", "Latitude", "Longitude", "Wanted")
@@ -175,6 +201,7 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
         return payload_dataclass
 
     def send_payload(self, payload: Dict):
+        """Send data to eddn"""
         logger.debug(f'Sending message to EDDN: {payload["$schemaRef"]}')
         response = self._session.post('https://eddn.edcd.io:4430/upload/', json=payload)
         if response.status_code >= 400:
@@ -185,6 +212,7 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
 
     @plugins.bind_signal(capi.shipyard_info_signal)
     def on_capi_shipyard_info_outfitting(self, data: dict):
+        """Send outfitting eddn message from CAPI shipyard information"""
         gamestate = get_gamestate()
 
         if not gamestate.location.system or not gamestate.location.station.name \
@@ -224,6 +252,7 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
 
     @plugins.bind_signal(capi.shipyard_info_signal)
     def on_capi_shipyard_info_shipyard(self, data: dict):
+        """Send shipyard eddn message from CAPI shipyard information"""
         gamestate = get_gamestate()
 
         if not gamestate.location.system or not gamestate.location.station.name \
@@ -262,8 +291,10 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
         if 400 <= response.status_code < 500:
             logger.error(data)
 
+    # pylint: disable=too-many-locals
     @plugins.bind_signal(capi.market_info_signal)
     def on_capi_market_info_commodities(self, data: dict):
+        """Send commodities eddn message from CAPI market information"""
         gamestate = get_gamestate()
 
         if not gamestate.location.system or not gamestate.location.station.name \
