@@ -56,7 +56,7 @@ mutation_registry: plugins_helpers.RoutingSwitchRegistry[
 ] = plugins_helpers.RoutingSwitchRegistry()
 
 
-class GameState(BasePlugin):
+class GameStatePlugin(BasePlugin):
     journal_reader: JournalReader = inject.attr(JournalReader)
 
     def __init__(self):
@@ -94,7 +94,7 @@ class GameState(BasePlugin):
 
 
 def get_gamestate() -> GameStateData:
-    gamestate = inject.instance(GameState)
+    gamestate = inject.instance(GameStatePlugin)
     return gamestate.state
 
 

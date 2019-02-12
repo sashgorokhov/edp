@@ -45,7 +45,7 @@ class StateOverviewComponent(BaseMainWindowSection):
         gamestate.game_state_set_signal.bind_nonstrict(signal_wrapper)
         gamestate.game_state_changed_signal.bind_nonstrict(signal_wrapper)
 
-        gamestate_plugin = self.plugin_proxy.get_plugin(gamestate.GameState)
+        gamestate_plugin = self.plugin_proxy.get_plugin(gamestate.GameStatePlugin)
 
         self.set_game_state_signal.emit(gamestate_plugin.state)
 

@@ -8,8 +8,8 @@ from edp.contrib import gamestate
 
 
 @pytest.fixture()
-def plugin() -> gamestate.GameState:
-    return gamestate.GameState()
+def plugin() -> gamestate.GameStatePlugin:
+    return gamestate.GameStatePlugin()
 
 
 def test_update_state_mutation_not_registered(plugin):

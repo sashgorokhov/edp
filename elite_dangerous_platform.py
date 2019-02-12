@@ -43,7 +43,7 @@ def main():
         plugin_loader = plugins.PluginLoader(settings.plugin_dir)
 
         plugin_loader.add_plugin(edsm.EDSMPlugin)
-        plugin_loader.add_plugin(gamestate.GameState)
+        plugin_loader.add_plugin(gamestate.GameStatePlugin)
         plugin_loader.add_plugin(eddn.EDDNPlugin)
         plugin_loader.add_plugin(discord_rich_presence.DiscordRichPresencePlugin)
         plugin_loader.add_plugin(inara.InaraPlugin)
