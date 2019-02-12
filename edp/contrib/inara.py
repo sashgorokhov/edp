@@ -1,3 +1,8 @@
+"""
+Inara integration plugin
+
+Sends journal events to inara
+"""
 import functools
 import itertools
 import logging
@@ -23,6 +28,7 @@ processor_registry: RoutingSwitchRegistry[Callable[[journal.Event], _RT], _RT] =
 
 
 class InaraSettings(BaseSettings):
+    """Inara plugin settings"""
     enabled: bool = True
     api_key: Optional[str] = None
     cookies: Dict[str, Any] = {}
@@ -30,17 +36,20 @@ class InaraSettings(BaseSettings):
 
 @dataclasses.dataclass()
 class InaraEvent:
+    """Inara event container"""
     eventName: str
     eventTimestamp: str
     eventData: Any
 
 
 def _qbytearray_to_str(value: QtCore.QByteArray) -> str:
+    """Convert QByteArray to python string"""
     s = QtCore.QTextStream(value)
     return s.readAll()
 
 
 class InaraWebLoginWindow(QtWebEngineWidgets.QWebEngineView):
+    """Custom QWebEngineView for inara user login"""
     LOGIN_URL = 'https://inara.cz/login/'
     SUCCESS_URL = 'https://inara.cz/intro/'
 
@@ -58,16 +67,19 @@ class InaraWebLoginWindow(QtWebEngineWidgets.QWebEngineView):
         self._cookies = {}
 
     def show(self):
+        """Show browser with LOGIN_URL loaded"""
         self.load(QtCore.QUrl(self.LOGIN_URL))
         super(InaraWebLoginWindow, self).show()
 
     def on_cookie_added(self, cookie: QtNetwork.QNetworkCookie):
+        """Handle set cookie"""
         try:
             self._cookies[_qbytearray_to_str(cookie.name())] = _qbytearray_to_str(cookie.value())
         except:
             logger.exception(f'Failed to set cookie: {cookie.name()}={cookie.value()}')
 
     def on_url_changed(self, url: QtCore.QUrl):
+        """Close window if url is SUCCESS_URL and emit login_successful signal"""
         if url.toString() == self.SUCCESS_URL:
             self.login_successful.emit(self._cookies)
             self._cookies = {}
@@ -75,6 +87,7 @@ class InaraWebLoginWindow(QtWebEngineWidgets.QWebEngineView):
 
 
 class InaraSettingsTabWidget(VLayoutTab):
+    """Inara plugin settings widget"""
     friendly_name = 'Inara'
 
     def __init__(self):
@@ -95,15 +108,18 @@ class InaraSettingsTabWidget(VLayoutTab):
         # yield layout
 
     def on_login_cookies_set(self, cookies: dict):
+        """Update cookies"""
         self.settings.cookies.update(cookies)
 
 
 class InaraApi:
+    """Inara api client"""
     def __init__(self, api_key):
         self._session = requests.Session()
         self._api_key = api_key
 
     def send(self, *events: InaraEvent, commander_name: str, frontier_id: str):
+        """Send list of InaraEvent to inara"""
         events_dicts = list(map(dataclasses.asdict, events))
 
         response = self._session.post('https://inara.cz/inapi/v1/', timeout=15, json={
@@ -121,6 +137,7 @@ class InaraApi:
 
 
 class InaraWebApi:
+    """Inara web api. Not used currently"""
     def __init__(self):
         settings = InaraSettings.get_insance()
 
@@ -129,6 +146,7 @@ class InaraWebApi:
 
 
 class InaraPlugin(BufferedEventsMixin, plugins.BasePlugin):
+    """Inara plugin"""
     friendly_name = 'Inara'
     journal_reader: journal.JournalReader = inject.attr(journal.JournalReader)
 
@@ -145,10 +163,15 @@ class InaraPlugin(BufferedEventsMixin, plugins.BasePlugin):
 
     @functools.lru_cache()
     def api(self):
+        """Return configured InaraApi instance"""
         return InaraApi(self.settings.api_key)
 
+    # pylint: disable=unused-argument
     @plugins.bind_signal(gamestate.game_state_set_signal)
     def gamestate_data_set(self, state: gamestate.GameStateData):
+        """
+        Process current journal file events
+        """
         latest_file_events = self.journal_reader.get_latest_file_events()
         filtered_events: List[journal.Event] = []
         for event in latest_file_events:
@@ -157,7 +180,9 @@ class InaraPlugin(BufferedEventsMixin, plugins.BasePlugin):
                 filtered_events.append(event)
         self.process_buffered_events(filtered_events)
 
+    # pylint: disable=no-self-use
     def process_buffered_events(self, events: List[journal.Event]):
+        """Process and send buffered journal events"""
         inara_events: List[InaraEvent] = []
         state = gamestate.get_gamestate()
 
@@ -189,6 +214,7 @@ class InaraPlugin(BufferedEventsMixin, plugins.BasePlugin):
                 logger.warning(f'Soft error {resp} for {jevent}')
 
     def process_event(self, event: journal.Event) -> List[InaraEvent]:
+        """Get inara events from journal event"""
         inara_events: List[InaraEvent] = []
 
         for result in processor_registry.execute_silently(event.name, event=event):
@@ -204,6 +230,7 @@ class InaraPlugin(BufferedEventsMixin, plugins.BasePlugin):
 
 @processor_registry.register('Docked')
 def on_docked_event(event: journal.Event) -> InaraEvent:
+    """From journal Docked event create inara addCommanderTravelDock event"""
     return InaraEvent(
         eventName='addCommanderTravelDock',
         eventTimestamp=event.data['timestamp'],
@@ -217,6 +244,7 @@ def on_docked_event(event: journal.Event) -> InaraEvent:
 
 @processor_registry.register('FSDJump')
 def on_fsdjump_event(event: journal.Event) -> InaraEvent:
+    """From journal FSDJump event create inara addCommanderTravelFSDJump event"""
     return InaraEvent(
         eventName='addCommanderTravelFSDJump',
         eventTimestamp=event.data['timestamp'],
@@ -229,17 +257,18 @@ def on_fsdjump_event(event: journal.Event) -> InaraEvent:
 
 @processor_registry.register('Statistics')
 def on_statistict_event(event: journal.Event) -> InaraEvent:
+    """From journal Statistics event create inara setCommanderGameStatistics event"""
     return InaraEvent(
         eventName='setCommanderGameStatistics',
         eventTimestamp=event.data['timestamp'],
         eventData=dict_subset(event.data, 'Combat', 'Bank_Account', 'Crime', 'Smuggling', 'Trading',
-                         'Mining', 'Exploration', 'Passengers', 'Search_And_Rescue', 'Crafting',
-                         'Crew', 'Multicrew')
-    )
+                              'Mining', 'Exploration', 'Passengers', 'Search_And_Rescue', 'Crafting',
+                              'Crew', 'Multicrew'))
 
 
 @processor_registry.register('Location')
 def on_location_event(event: journal.Event) -> InaraEvent:
+    """From journal Location event create inara setCommanderTravelLocation event"""
     data = {'starsystemName': event.data['StarSystem']}
     if 'StationName' in event.data:
         data['stationName'] = event.data['StationName']
@@ -253,6 +282,7 @@ def on_location_event(event: journal.Event) -> InaraEvent:
 
 @processor_registry.register('EngineerProgress')
 def on_engineer_progress_event(event: journal.Event) -> InaraEvent:
+    """From journal EngineerProgress event create inara setCommanderRankEngineer event"""
     return InaraEvent(
         eventName='setCommanderRankEngineer',
         eventTimestamp=event.data['timestamp'],
@@ -264,6 +294,7 @@ def on_engineer_progress_event(event: journal.Event) -> InaraEvent:
 
 @processor_registry.register('Reputation')
 def on_reputation_event(event: journal.Event) -> InaraEvent:
+    """From journal Reputation event create inara setCommanderReputationMajorFaction event"""
     return InaraEvent(
         eventName='setCommanderReputationMajorFaction',
         eventTimestamp=event.data['timestamp'],
@@ -274,6 +305,7 @@ def on_reputation_event(event: journal.Event) -> InaraEvent:
 
 @processor_registry.register('Progress')
 def on_progress_event(event: journal.Event) -> InaraEvent:
+    """From journal Progress event create inara setCommanderRankPilot event"""
     rank_keys = ('Combat', 'Trade', 'Explore', 'Empire', 'Federation', 'CQC')
 
     return InaraEvent(
@@ -286,6 +318,7 @@ def on_progress_event(event: journal.Event) -> InaraEvent:
 
 @processor_registry.register('Rank')
 def on_rank_event(event: journal.Event) -> InaraEvent:
+    """From journal Rank event create inara setCommanderRankPilot event"""
     rank_keys = ('Combat', 'Trade', 'Explore', 'Empire', 'Federation', 'CQC')
 
     return InaraEvent(
@@ -298,6 +331,7 @@ def on_rank_event(event: journal.Event) -> InaraEvent:
 
 @processor_registry.register('Materials')
 def on_materials_event(event: journal.Event) -> InaraEvent:
+    """From journal Materials event create inara setCommanderInventoryMaterials event"""
     materials = [{'itemName': m['Name'], 'itemCount': m['Count']}
                  for m in itertools.chain(*(event.data.get(cat, [])
                                             for cat in ['Raw', 'Encoded', 'Manufactured']))
@@ -311,6 +345,7 @@ def on_materials_event(event: journal.Event) -> InaraEvent:
 
 @processor_registry.register('LoadGame')
 def on_loadgame_event(event: journal.Event) -> List[InaraEvent]:
+    """From journal LoadGame event create inara setCommanderShip, setCommanderCredits events"""
     return [
         InaraEvent(
             eventName='setCommanderShip',
@@ -335,6 +370,7 @@ def on_loadgame_event(event: journal.Event) -> List[InaraEvent]:
 
 @processor_registry.register('Loadout')
 def on_loadout_event(event: journal.Event) -> List[InaraEvent]:
+    """From journal Loadout event create inara setCommanderShip,setCommanderShipLoadout events"""
     modules = []
 
     for m in event.data.get('Modules', []):
@@ -402,6 +438,7 @@ def on_loadout_event(event: journal.Event) -> List[InaraEvent]:
 
 @processor_registry.register('MaterialCollected')
 def on_material_collected_event(event: journal.Event) -> InaraEvent:
+    """From journal MaterialCollected event create inara addCommanderInventoryMaterialsItem event"""
     return InaraEvent(
         eventName='addCommanderInventoryMaterialsItem',
         eventTimestamp=event.data['timestamp'],
@@ -414,6 +451,7 @@ def on_material_collected_event(event: journal.Event) -> InaraEvent:
 
 @processor_registry.register('MaterialDiscarded')
 def on_material_discarded_event(event: journal.Event) -> InaraEvent:
+    """From journal MaterialDiscarded event create inara delCommanderInventoryMaterialsItem event"""
     return InaraEvent(
         eventName='delCommanderInventoryMaterialsItem',
         eventTimestamp=event.data['timestamp'],
@@ -426,6 +464,7 @@ def on_material_discarded_event(event: journal.Event) -> InaraEvent:
 
 @processor_registry.register('EngineerCraft')
 def on_engineer_craft_event(event: journal.Event) -> List[InaraEvent]:
+    """From journal EngineerCraft event create inara delCommanderInventoryMaterialsItem events"""
     return [
         InaraEvent(
             eventName='delCommanderInventoryMaterialsItem',
@@ -442,6 +481,10 @@ def on_engineer_craft_event(event: journal.Event) -> List[InaraEvent]:
 
 @processor_registry.register('MaterialTrade')
 def on_material_trade_event(event: journal.Event) -> List[InaraEvent]:
+    """
+    From journal MaterialTrade event create inara delCommanderInventoryMaterialsItem,
+    addCommanderInventoryMaterialsItem events
+    """
     return [
         InaraEvent(
             eventName='delCommanderInventoryMaterialsItem',
@@ -464,6 +507,7 @@ def on_material_trade_event(event: journal.Event) -> List[InaraEvent]:
 
 @processor_registry.register('MissionCompleted')
 def on_mission_complete_event(event: journal.Event) -> List[InaraEvent]:
+    """From journal MissionCompleted event create inara addCommanderInventoryMaterialsItem events"""
     return [
         InaraEvent(
             eventName='addCommanderInventoryMaterialsItem',
@@ -480,6 +524,7 @@ def on_mission_complete_event(event: journal.Event) -> List[InaraEvent]:
 
 @processor_registry.register('Synthesis')
 def on_synthesis_event(event: journal.Event) -> List[InaraEvent]:
+    """From journal Synthesis event create inara delCommanderInventoryMaterialsItem events"""
     return [
         InaraEvent(
             eventName='delCommanderInventoryMaterialsItem',
