@@ -7,27 +7,28 @@ from typing import Dict, Optional, Tuple, List
 import dataclasses
 
 
-class _BaseEntity:
+class BaseEntity:
+    """Base entity class with logic for watching for changes"""
     __sentinel__ = object()
     __changed__ = False
 
     def __init__(self, *args, **kwargs):
-        super(_BaseEntity, self).__init__(*args, **kwargs)
+        super(BaseEntity, self).__init__(*args, **kwargs)
         self.reset_changed()
 
     def __setattr__(self, key, value):
         if value is self.__sentinel__:
             return None
         if value != getattr(self, key, object()):
-            super(_BaseEntity, self).__setattr__('__changed__', True)
-        return super(_BaseEntity, self).__setattr__(key, value)
+            super(BaseEntity, self).__setattr__('__changed__', True)
+        return super(BaseEntity, self).__setattr__(key, value)
 
     def _dataclass_type_fields(self):
         # noinspection PyUnresolvedReferences
         for field_name, field in self.__dataclass_fields__.items():  # pylint: disable=no-member
             if dataclasses.is_dataclass(field.type):
                 obj = getattr(self, field_name)
-                if isinstance(obj, _BaseEntity):
+                if isinstance(obj, BaseEntity):
                     yield obj
 
     @property
@@ -45,7 +46,7 @@ class _BaseEntity:
         # noinspection PyUnresolvedReferences
         for field_name, field in self.__dataclass_fields__.items():  # pylint: disable=no-member
             value = getattr(self, field_name)
-            if dataclasses.is_dataclass(field.type) and isinstance(value, _BaseEntity):
+            if dataclasses.is_dataclass(field.type) and isinstance(value, BaseEntity):
                 value.clear()
             else:
                 if field.default is dataclasses.MISSING:
@@ -58,14 +59,14 @@ class _BaseEntity:
 
 
 @dataclasses.dataclass()
-class Commander(_BaseEntity):
+class Commander(BaseEntity):
     """Describes commander"""
     name: Optional[str] = None
     frontier_id: Optional[str] = None
 
 
 @dataclasses.dataclass
-class Material(_BaseEntity):
+class Material(BaseEntity):
     """
     Describes material
 
@@ -97,7 +98,7 @@ class Material(_BaseEntity):
 
 
 @dataclasses.dataclass
-class MaterialStorage(_BaseEntity):
+class MaterialStorage(BaseEntity):
     """
     Defines material storage - container for all materials grouped by category.
     """
@@ -149,7 +150,7 @@ class MaterialStorage(_BaseEntity):
 
 
 @dataclasses.dataclass
-class Ship(_BaseEntity):
+class Ship(BaseEntity):
     """
     Defines a ship
     """
@@ -160,7 +161,7 @@ class Ship(_BaseEntity):
 
 
 @dataclasses.dataclass
-class Rank(_BaseEntity):
+class Rank(BaseEntity):
     """
     Container for rank information
     """
@@ -184,7 +185,7 @@ class Rank(_BaseEntity):
 
 
 @dataclasses.dataclass
-class Reputation(_BaseEntity):
+class Reputation(BaseEntity):
     """
     Reputation info
     """
@@ -194,7 +195,7 @@ class Reputation(_BaseEntity):
 
 
 @dataclasses.dataclass
-class Engineer(_BaseEntity):
+class Engineer(BaseEntity):
     """
     Defines engineer and commander reputation with him
     """
@@ -206,7 +207,7 @@ class Engineer(_BaseEntity):
 
 
 @dataclasses.dataclass
-class Station(_BaseEntity):
+class Station(BaseEntity):
     """
     Container for station information
     """
@@ -220,7 +221,7 @@ class Station(_BaseEntity):
 
 
 @dataclasses.dataclass
-class Location(_BaseEntity):
+class Location(BaseEntity):
     """
     Container for location info
     """

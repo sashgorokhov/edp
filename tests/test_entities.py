@@ -6,7 +6,7 @@ from edp import entities
 
 def test_entity_set_sentinel():
     @dataclasses.dataclass()
-    class TestEntity(entities._BaseEntity):
+    class TestEntity(entities.BaseEntity):
         foo: str = '1'
 
     e = TestEntity()
@@ -18,7 +18,7 @@ def test_entity_set_sentinel():
 
 def test_entity_changed():
     @dataclasses.dataclass()
-    class TestEntity(entities._BaseEntity):
+    class TestEntity(entities.BaseEntity):
         foo: str = '1'
 
     e = TestEntity()
@@ -32,7 +32,7 @@ def test_entity_changed():
 
 def test_entity_reset_changed():
     @dataclasses.dataclass()
-    class TestEntity(entities._BaseEntity):
+    class TestEntity(entities.BaseEntity):
         foo: str = '1'
 
     e = TestEntity()
@@ -45,11 +45,11 @@ def test_entity_reset_changed():
 
 def test_entity_clear():
     @dataclasses.dataclass()
-    class NestedEntity(entities._BaseEntity):
+    class NestedEntity(entities.BaseEntity):
         field: dict = dataclasses.field(default_factory=dict)
 
     @dataclasses.dataclass()
-    class TestEntity(entities._BaseEntity):
+    class TestEntity(entities.BaseEntity):
         foo: str = '1'
         nested: NestedEntity = dataclasses.field(default_factory=NestedEntity)
 
