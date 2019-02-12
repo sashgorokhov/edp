@@ -1,4 +1,8 @@
-"""EDSM integration plugin"""
+"""
+EDSM integration plugin
+
+Sends commander journal events to EDSM
+"""
 import functools
 import json
 import logging
