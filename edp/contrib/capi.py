@@ -327,6 +327,7 @@ class CapiManager:
         if not self._window:
             self._window = CapiAuthWindow()
             self._window.on_redirect_url.connect(self._on_redirect_url)
+            signals.exiting.bind(self._window.close)
 
         self._generate_oauth_creds()
         auth_url = build_authorization_url(
