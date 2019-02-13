@@ -1,204 +1,135 @@
-# References:
-# * https://github.com/devsnek/discord-rpc/tree/master/src/transports/IPC.js
-# * https://github.com/devsnek/discord-rpc/tree/master/example/main.js
-# * https://github.com/discordapp/discord-rpc/tree/master/documentation/hard-mode.md
-# * https://github.com/discordapp/discord-rpc/tree/master/src
-# * https://discordapp.com/developers/docs/rich-presence/how-to#updating-presence-update-presence-payload-fields
-
+"""
+Discord app rpc client
+"""
+import enum
 import json
 import logging
 import os
-import socket
 import struct
-import sys
 import uuid
-from abc import ABCMeta, abstractmethod
+from typing import BinaryIO, Optional, Tuple
 
-OP_HANDSHAKE = 0
-OP_FRAME = 1
-OP_CLOSE = 2
-OP_PING = 3
-OP_PONG = 4
+from edp.utils import dict_subset
 
 logger = logging.getLogger(__name__)
 
 
-class DiscordIpcError(Exception):
-    pass
+class RPC_OP(enum.Enum):
+    """RCP OPs"""
+    OP_HANDSHAKE = 0
+    OP_FRAME = 1
+    OP_CLOSE = 2
+    OP_PING = 3
+    OP_PONG = 4
 
 
-class DiscordIpcClient(metaclass=ABCMeta):
-    """Work with an open Discord instance via its JSON IPC for its rich presence API.
+class DiscordRpcClient:
+    """Discord rpc server client"""
 
-    In a blocking way.
-    Classmethod `for_platform`
-    will resolve to one of WinDiscordIpcClient or UnixDiscordIpcClient,
-    depending on the current platform.
-    Supports context handler protocol.
-    """
+    def __init__(self, client_id: str):
+        self._client_id = client_id
+        self._pipe_file_handler: Optional[BinaryIO] = None
 
-    def __init__(self, client_id):
-        self.client_id = client_id
-        self._connect()
-        self._do_handshake()
-        logger.info("connected via ID %s", client_id)
+    # pylint: disable=no-self-use
+    def _open_discord_rpc_pipe(self) -> Optional[BinaryIO]:
+        for i in range(10):
+            path = fr'\\?\pipe\discord-ipc-{i}'
+            try:
+                return open(path, "w+b")
+            except OSError:
+                logger.debug(f'Failed to connect to discord rpc server at "{path}"')
+        return None
 
-    @classmethod
-    def for_platform(cls, client_id, platform=sys.platform):
-        if platform == 'win32':
-            return WinDiscordIpcClient(client_id)
-        else:
-            return UnixDiscordIpcClient(client_id)
+    @property
+    def _pipe_file(self) -> BinaryIO:
+        if not self._pipe_file_handler:
+            file_handler = self._open_discord_rpc_pipe()
+            if not file_handler:
+                raise ConnectionError('Failed to connect to discord rpc server')
+            self._pipe_file_handler = file_handler
+            if not self._handshake():
+                self._pipe_file_handler = None
+                raise ConnectionError('Handshake failed')
 
-    @abstractmethod
-    def _connect(self):
-        pass
+        return self._pipe_file_handler
 
-    def _do_handshake(self):
-        ret_op, ret_data = self.send_recv({'v': 1, 'client_id': self.client_id}, op=OP_HANDSHAKE)
-        # {'cmd': 'DISPATCH', 'data': {'v': 1, 'config': {...}}, 'evt': 'READY', 'nonce': None}
-        if ret_op == OP_FRAME and ret_data['cmd'] == 'DISPATCH' and ret_data['evt'] == 'READY':
-            return
-        else:
-            if ret_op == OP_CLOSE:
-                self.close()
-            raise RuntimeError(ret_data)
+    def _send(self, data: dict, op: RPC_OP = RPC_OP.OP_FRAME):
+        """
+        Send data to discord rpc server
 
-    @abstractmethod
-    def _write(self, date: bytes):
-        pass
+        :raises ConnectionError: if sending data fails
+        """
+        data_str = json.dumps(data, separators=(',', ':'))
+        data_bytes = data_str.encode('utf-8')
+        header = struct.pack("<II", op.value, len(data_bytes))
+        try:
+            self._pipe_file.write(header)
+            self._pipe_file.write(data_bytes)
+            self._pipe_file.flush()
+        except ConnectionError:
+            raise
+        except:
+            logger.exception('Error sending request to discord rpc server')
+            self._pipe_file_handler = None
+            raise ConnectionError('Failed to send data to discord rpc server')
 
-    @abstractmethod
-    def _recv(self, size: int) -> bytes:
-        pass
-
-    def _recv_header(self):
-        header = self._recv_exactly(8)
-        return struct.unpack("<II", header)
-
-    def _recv_exactly(self, size) -> bytes:
+    def _read_exactly(self, size: int) -> bytes:
         buf = b""
         size_remaining = size
         while size_remaining:
-            chunk = self._recv(size_remaining)
+            try:
+                chunk = self._pipe_file.read(size_remaining)
+            except:
+                self._pipe_file_handler = None
+                raise ConnectionError('Failed to read discord rpc server response')
             buf += chunk
             size_remaining -= len(chunk)
         return buf
 
-    def close(self):
-        logger.warning("closing connection")
-        try:
-            self.send({}, op=OP_CLOSE)
-        finally:
-            self._close()
-
-    @abstractmethod
-    def _close(self):
-        pass
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *_):
-        self.close()
-
-    def send_recv(self, data, op=OP_FRAME):
-        self.send(data, op)
-        return self.recv()
-
-    def send(self, data, op=OP_FRAME):
-        logger.debug("sending %s", data)
-        data_str = json.dumps(data, separators=(',', ':'))
-        data_bytes = data_str.encode('utf-8')
-        header = struct.pack("<II", op, len(data_bytes))
-        self._write(header)
-        self._write(data_bytes)
-
-    def recv(self):
-        """Receives a packet from discord.
-
-        Returns op code and payload.
-        """
-        op, length = self._recv_header()
-        payload = self._recv_exactly(length)
-        data = json.loads(payload.decode('utf-8'))
-        logger.debug("received %s", data)
+    def _receive(self) -> Tuple[RPC_OP, dict]:
+        header = self._read_exactly(8)
+        op, length = struct.unpack("<II", header)
+        data_bytes = self._read_exactly(length)
+        data = json.loads(data_bytes.decode('utf-8'))
         return op, data
 
-    def set_activity(self, act):
-        # act
+    def _handshake(self) -> bool:
+        """Do a handshake routine. Return True if successful"""
+        ret_op, ret_data = self.request({'v': 1, 'client_id': self._client_id}, op=RPC_OP.OP_HANDSHAKE)
+
+        if RPC_OP(ret_op) is RPC_OP.OP_FRAME and \
+                dict_subset(ret_data, 'cmd', 'evt') == {'cmd': 'DISPATCH', 'evt': 'READY'}:
+            return True
+
+        if RPC_OP(ret_op) is RPC_OP.OP_CLOSE:
+            self.close()
+            return False
+
+        return False
+
+    def request(self, data: dict, op: RPC_OP = RPC_OP.OP_FRAME) -> Tuple[RPC_OP, dict]:
+        """Send data to rpc server and return its response"""
+        self._send(data, op)
+        return self._receive()
+
+    def close(self):
+        """Close connection"""
+        if self._pipe_file_handler:
+            try:
+                self._send({}, op=RPC_OP.OP_CLOSE)
+            finally:
+                if self._pipe_file_handler:
+                    self._pipe_file_handler.close()
+                    self._pipe_file_handler = None
+
+    def set_activity(self, activity: dict):
+        """Set discord rich presence activity"""
         data = {
             'cmd': 'SET_ACTIVITY',
-            'args': {'pid': os.getpid(),
-                     'activity': act},
+            'args': {
+                'pid': os.getpid(),
+                'activity': activity
+            },
             'nonce': str(uuid.uuid4())
         }
-        self.send(data)
-
-
-class WinDiscordIpcClient(DiscordIpcClient):
-    _pipe_pattern = R'\\?\pipe\discord-ipc-{}'
-
-    def _connect(self):
-        for i in range(10):
-            path = self._pipe_pattern.format(i)
-            try:
-                self._f = open(path, "w+b")
-            except OSError as e:
-                logger.error("failed to open {!r}: {}".format(path, e))
-            else:
-                break
-        else:
-            return DiscordIpcError("Failed to connect to Discord pipe")
-
-        self.path = path
-
-    def _write(self, data: bytes):
-        self._f.write(data)
-        self._f.flush()
-
-    def _recv(self, size: int) -> bytes:
-        return self._f.read(size)
-
-    def _close(self):
-        self._f.close()
-
-
-class UnixDiscordIpcClient(DiscordIpcClient):
-
-    def _connect(self):
-        self._sock = socket.socket(socket.AF_UNIX)
-        pipe_pattern = self._get_pipe_pattern()
-
-        for i in range(10):
-            path = pipe_pattern.format(i)
-            if not os.path.exists(path):
-                continue
-            try:
-                self._sock.connect(path)
-            except OSError as e:
-                logger.error("failed to open {!r}: {}".format(path, e))
-            else:
-                break
-        else:
-            return DiscordIpcError("Failed to connect to Discord pipe")
-
-    @staticmethod
-    def _get_pipe_pattern():
-        env_keys = ('XDG_RUNTIME_DIR', 'TMPDIR', 'TMP', 'TEMP')
-        for env_key in env_keys:
-            dir_path = os.environ.get(env_key)
-            if dir_path:
-                break
-        else:
-            dir_path = '/tmp'
-        return os.path.join(dir_path, 'discord-ipc-{}')
-
-    def _write(self, data: bytes):
-        self._sock.sendall(data)
-
-    def _recv(self, size: int) -> bytes:
-        return self._sock.recv(size)
-
-    def _close(self):
-        self._sock.close()
+        return self.request(data)[1]

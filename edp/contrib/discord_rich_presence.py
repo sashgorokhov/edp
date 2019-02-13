@@ -1,6 +1,5 @@
 """Discord Rich Presence integration plugin"""
 import datetime
-import functools
 import logging
 from typing import Optional, Dict
 
@@ -46,10 +45,11 @@ class DRPState:
 
 class DiscordRichPresencePlugin(plugins.BasePlugin):
     """Discord rich presence plugin"""
+
     def __init__(self):
         self.settings = DRPSettings.get_insance()
         self._current_state: Optional[DRPState] = None
-        self._rpc_client = None
+        self._rpc_client = discord_rpc.DiscordRpcClient(config.DISCORD_CLIENT_ID)
 
     def is_enalbed(self):
         return self.settings.enabled
@@ -58,12 +58,6 @@ class DiscordRichPresencePlugin(plugins.BasePlugin):
         """Set current state so it will be flushed to discord in background"""
         state.timestamp_start = datetime.datetime.now().timestamp()
         self._current_state = state
-
-    # pylint: disable=no-self-use
-    @functools.lru_cache(1)
-    def rpc_client(self):
-        """Return discord rpc client instance"""
-        return discord_rpc.WinDiscordIpcClient(config.DISCORD_CLIENT_ID)
 
     @plugins.bind_signal(gamestate.game_state_changed_signal, gamestate.game_state_set_signal)
     def on_game_state_changed(self, state: gamestate.GameStateData):
@@ -121,9 +115,11 @@ class DiscordRichPresencePlugin(plugins.BasePlugin):
             activity['assets']['small_image'] = state.assets_small_image
 
         try:
-            self.rpc_client().set_activity(activity)
-        except OSError as e:
-            logger.debug('Error while setting activity: %s', e)
+            self._rpc_client.set_activity(activity)
+        except ConnectionError:
+            logger.debug('Cant connect to discord app')
+        except:
+            logger.exception('Failed to send activity to discord app')
 
     def get_settings_widget(self):
         return DRPSettingsTabWidget()
@@ -132,6 +128,6 @@ class DiscordRichPresencePlugin(plugins.BasePlugin):
     def on_exit(self):
         """Close rpc client on application exit"""
         try:
-            self.rpc_client().close()
+            self._rpc_client.close()
         except:
-            logger.warning('Error closing client')
+            logger.warning('Error closing client', exc_info=True)
