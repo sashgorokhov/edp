@@ -12,7 +12,7 @@ install:
 script:
   - pytest --color=auto --cov=edp --cov-report=term-missing tests/
   - mypy edp/
-  - pylint -j 0 --persistent=n edp/ || true
+  - pylint -j 0 --persistent=n edp/
 
 after_success:
   - codecov

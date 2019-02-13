@@ -109,7 +109,7 @@ def mypy(c):
 @task()
 def pylint(c):
     """Run pylint style checker on whole project"""
-    c.run('pylint -j 0 edp', warn=True)
+    c.run('pylint -j 0 edp')
 
 
 @task()
@@ -274,10 +274,12 @@ def commits_before_tag(c):
 
 @task()
 def docs(c):
+    """Build sphinx docs"""
     c.run('sphinx-build -v docs/src/ docs/')
 
 
 @task(docs)
 def update_docs(c):
+    """Build sphinx docs and commit and push"""
     c.run(f'git commit -m "Update docs" .')
     c.run(f'git push --all')
