@@ -13,8 +13,7 @@ def client_mock():
 @pytest.fixture()
 def discord_plugin(client_mock):
     plugin = discord_rich_presence.DiscordRichPresencePlugin()
-    with mock.patch.object(plugin, 'rpc_client') as m:
-        m.return_value = client_mock
+    with mock.patch.object(plugin, '_rpc_client', new=client_mock):
         yield plugin
 
 
