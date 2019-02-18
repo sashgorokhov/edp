@@ -354,7 +354,7 @@ class CapiManager:
             token_info = self._refresh_token(self._settings.refresh_token)
 
         if not token_info:
-            logger.error('Failed to refresh token')
+            logger.warning('Failed to refresh token')
             logger.warning('Login required')
             self._settings.access_token = None
             self._set_login_required()
