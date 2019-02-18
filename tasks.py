@@ -301,9 +301,9 @@ def read_version():
 def commit_version(c):
     """Commit and push changed version"""
     version = '%s.%s.%s' % read_version()
-    c.run(f'git commit -m "Update VERSION to {version}" {BASE_DIR / "VERSION"}')
-    c.run(f'git tag -a -m "v{version}" "v{version}"')
-    c.run(f'git push --all')
+    c.run(f'git commit -m "Update VERSION to {version}" {BASE_DIR / "VERSION"}', hide='stdout')
+    c.run(f'git tag -a -m "v{version}" "v{version}"', hide='stdout')
+    c.run(f'git push --all', hide='stdout')
 
 
 @task()
@@ -338,7 +338,7 @@ def commits_before_tag(c):
     all_tags = list(filter(None, (t.strip() for t in c.run('git tag', hide=True).stdout.split('\n'))))
     previous_tag = all_tags[-2]
     last_tag = all_tags[-1]
-    result = c.run(f'git log --pretty=oneline {previous_tag}..{last_tag}').stdout
+    result = c.run(f'git log --pretty=oneline {previous_tag}..{last_tag}', hide='stdout').stdout
     return list(filter(None, result.split('\n')))
 
 
