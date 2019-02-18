@@ -40,6 +40,7 @@ def main():
             scope.set_extra('game_build', game_version.build)
 
         logger.info('Loading plugins')
+        settings.plugin_dir.mkdir(parents=True, exist_ok=True)
         plugin_loader = plugins.PluginLoader(settings.plugin_dir)
 
         plugin_loader.add_plugin(edsm.EDSMPlugin)
