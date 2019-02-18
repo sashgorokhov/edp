@@ -67,7 +67,7 @@ def get_function_marks(func: Callable) -> List[FunctionMark]:
     return getattr(func, '__edp_plugin_mark__', [])
 
 
-def scheduled(interval: Union[float, int] = 1, plugin_enabled=True):
+def scheduled(interval: Union[float, int] = 1, plugin_enabled=True, skipfirst=False):
     """
     Decorator to mark wrapped function as scheduled.
 
@@ -76,10 +76,11 @@ def scheduled(interval: Union[float, int] = 1, plugin_enabled=True):
 
     :param interval: Seconds to wait between function execution
     :param plugin_enabled: Execute function only if plugin enabled (is_enabled method returns True)
+    :param skipfirst: Skip first execution of scheduled function
     """
     if interval <= 0:
         raise ValueError(f'interval must be greater than zero: {interval}')
-    return mark_function(MARKS.SCHEDULED, interval=interval, plugin_enabled=plugin_enabled)
+    return mark_function(MARKS.SCHEDULED, interval=interval, plugin_enabled=plugin_enabled, skipfirst=skipfirst)
 
 
 def bind_signal(*signals: signalslib.Signal, plugin_enabled=True):
@@ -239,9 +240,10 @@ class PluginManager:
         for marked_method in self.get_marked_methods(MARKS.SCHEDULED):
             plugin_enabled: bool = marked_method.mark.options['plugin_enabled']
             interval: int = marked_method.mark.options.get('interval', 1)
+            skipfirst: bool = marked_method.mark.options.get('skipfirst', False)
 
             callback = self._callback_wrapper(marked_method.method, marked_method.plugin, plugin_enabled)
-            yield IntervalRunnerThread(callback, interval=interval)
+            yield IntervalRunnerThread(callback, interval=interval, skipfirst=skipfirst)
 
     def set_plugin_annotation_references(self):
         """

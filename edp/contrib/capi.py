@@ -234,7 +234,7 @@ class CapiManager:
 
         self.state = CapiState()
 
-        self._window = None
+        self._window: Optional[CapiAuthWindow] = None
 
         self._session = requests.Session()
         self._session.headers['User-Agent'] = config.USERAGENT
@@ -288,6 +288,7 @@ class CapiManager:
 
     def _exchange_code(self, code: str) -> Optional[TokenInfo]:
         try:
+            assert self._window is not None
             response = self._session.post(AUTH_URL / 'token', timeout=10, json={
                 "grant_type": "authorization_code",
                 "client_id": config.CAPI_CLIENT_ID,
@@ -454,7 +455,7 @@ class CapiPlugin(plugins.BasePlugin):
     def get_settings_widget(self):
         return CapiSettingsTabWidget(self._manager)
 
-    @plugins.scheduled(120)
+    @plugins.scheduled(120, skipfirst=True)
     def do_refresh_token(self):
         """Periodically try to refresh token if required """
         if self._manager.state.is_refresh_required:

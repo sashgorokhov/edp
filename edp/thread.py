@@ -63,11 +63,12 @@ class StoppableThread(threading.Thread):
 class IntervalRunnerThread(StoppableThread):
     """Thread that executes its target repeatedly with given intervals"""
 
-    def __init__(self, target: Callable, interval: Union[int, float] = 1, **kwargs):
+    def __init__(self, target: Callable, interval: Union[int, float] = 1, skipfirst: bool = False, **kwargs):
         """
         :param interval: sleep interval between executions, in seconds
         """
         self._interval = interval
+        self._skipfirst = skipfirst
         kwargs['target'] = target
         super(IntervalRunnerThread, self).__init__(**kwargs)
 
@@ -75,7 +76,10 @@ class IntervalRunnerThread(StoppableThread):
     def run(self):
         while not self.is_stopped:
             try:
-                self._target(*self._args, **self._kwargs)
+                if not self._skipfirst:
+                    self._target(*self._args, **self._kwargs)
+                else:
+                    self._skipfirst = False
             except:
                 logger.exception('Error executing interval function %s', self._target)
             finally:
