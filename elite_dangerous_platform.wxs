@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?define ProductName = "Elite Dangerous Platform"?>
+<?define ProductVersion = "$(var.Version)"?> <!-- Version must be passed from cmd to candle-->
+<?define ProductManufacturer = "Alexander Gorokhov"?>
+<?define ProductExecutable = "elite_dangerous_platform.exe"?>
+<?define ProductUpgradeCode = "367ac562-cf7a-47ea-b036-c8315f61b424"?>
+
+
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Product Id="*"
+             UpgradeCode="$(var.ProductUpgradeCode)"
+             Name="$(var.ProductName)"
+             Version='$(var.Version)'
+             Manufacturer="$(var.ProductManufacturer)"
+             Language="1033"
+    >
+
+        <Package Id="*"
+                 InstallerVersion="200"
+                 Compressed="yes"
+                 Manufacturer="$(var.ProductManufacturer)"
+                 InstallScope="perUser"
+        />
+
+        <Media Id="1" Cabinet="product.cab" EmbedCab="yes"/>
+
+        <UI>
+            <UIRef Id="WixUI_Minimal"/>
+            <Publish Dialog="ExitDialog"
+                     Control="Finish"
+                     Event="DoAction"
+                     Value="LaunchApplication">WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed
+            </Publish>
+        </UI>
+
+        <WixVariable Id="WixUILicenseRtf" Value="$(var.DistDir)\LICENSE.rtf" />
+
+        <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value="Thank you for choosing $(var.ProductName)!" />
+        <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch $(var.ProductName)"/>
+
+        <Property Id="WixShellExecTarget" Value="[#$(var.ProductExecutable)]"/>
+        <CustomAction Id="LaunchApplication" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes"/>
+
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <Directory Id="LocalAppDataFolder">
+                <Directory Id="InstallDir" Name="$(var.ProductName)"/>
+            </Directory>
+        </Directory>
+
+        <Feature Id="DefaultFeature" Level="1">
+            <ComponentGroupRef Id="DIST_DIR_FILES"/>
+        </Feature>
+    </Product>
+</Wix>
