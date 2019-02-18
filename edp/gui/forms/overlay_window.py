@@ -3,12 +3,11 @@ import enum
 import logging
 from functools import partial
 from typing import NamedTuple, Optional, NewType, Iterator, Dict, Mapping
+import win32con  # pylint: disable=import-error
+import win32gui  # pylint: disable=import-error
 
-import inject
-import win32con
-from PyQt5 import QtWidgets, QtCore
-
-import win32gui
+import inject  # pylint: disable=wrong-import-order
+from PyQt5 import QtWidgets, QtCore  # pylint: disable=wrong-import-order
 
 from edp import config, thread, signalslib, journal
 from edp.gui.compiled.overlay_window import Ui_Form

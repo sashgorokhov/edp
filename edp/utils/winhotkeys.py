@@ -8,7 +8,7 @@ import ctypes
 import logging
 from typing import List, Callable, NamedTuple, Any, Optional
 
-import win32con
+import win32con  # pylint: disable=import-error
 
 from edp import thread, signalslib
 

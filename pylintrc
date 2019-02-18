@@ -15,6 +15,4 @@ extension-pkg-whitelist=PyQt5,win32gui,win32con
 
 ignore=
     ui,
-    compiled,
-    win32gui,
-    win32con
+    compiled
