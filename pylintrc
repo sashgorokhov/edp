@@ -11,7 +11,7 @@ disable=
 
 max-line-length=120
 
-extension-pkg-whitelist=PyQt5,win32gui
+extension-pkg-whitelist=PyQt5,win32gui,win32con
 
 ignore=
     ui,
