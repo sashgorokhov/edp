@@ -23,6 +23,8 @@
                  InstallScope="perUser"
         />
 
+        <MajorUpgrade AllowDowngrades="yes" AllowSameVersionUpgrades="no"/>
+
         <Media Id="1" Cabinet="product.cab" EmbedCab="yes"/>
 
         <UI>
@@ -34,9 +36,9 @@
             </Publish>
         </UI>
 
-        <WixVariable Id="WixUILicenseRtf" Value="$(var.DistDir)\LICENSE.rtf" />
+        <WixVariable Id="WixUILicenseRtf" Value="$(var.DistDir)\LICENSE.rtf"/>
 
-        <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value="Thank you for choosing $(var.ProductName)!" />
+        <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value="Thank you for choosing $(var.ProductName)!"/>
         <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch $(var.ProductName)"/>
 
         <Property Id="WixShellExecTarget" Value="[#$(var.ProductExecutable)]"/>

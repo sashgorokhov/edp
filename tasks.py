@@ -217,7 +217,7 @@ def build_msi(c):
 
     print(f'\t Compile wix objects into {WIX_MSI}')
     c.run(f'{LIGHT} -nologo -cultures:en-us -pdbout {str(BUILD_DIR / WIX_MSI.stem) + ".wixpdb"} '
-          f'-ext WixUIExtension -ext WixUtilExtension -o {WIX_MSI} {MAIN_OBJ} {DIST_DIR_FILES_OBJ}')
+          f'-ext WixUIExtension -ext WixUtilExtension -o {WIX_MSI} {MAIN_OBJ} {DIST_DIR_FILES_OBJ}', warn=True)
 
 
 @task(test, build, dist, build_msi)
