@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Statistic">
+    <option name="excludeDotArtifactDirectory" value="true" />
+    <option name="excludedDirectories">
+      <list>
+        <option value="$PROJECT_DIR$/.idea" />
+        <option value="$PROJECT_DIR$/.ipynb_checkpoints" />
+        <option value="$PROJECT_DIR$/.mypy_cache" />
+        <option value="$PROJECT_DIR$/.pytest_cache" />
+        <option value="$PROJECT_DIR$/.tmp" />
+        <option value="$PROJECT_DIR$/build" />
+        <option value="$PROJECT_DIR$/dist" />
+      </list>
+    </option>
+  </component>
+</project>
