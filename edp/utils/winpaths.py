@@ -1,5 +1,7 @@
 """Collection of common windows paths identifiers and helper function to get their paths"""
 import ctypes
+from ctypes import wintypes  # pylint: disable=import-error
+
 import pathlib
 from uuid import UUID
 
@@ -7,10 +9,10 @@ from uuid import UUID
 class GUID(ctypes.Structure):
     """C structure definition"""
     _fields_ = [
-        ("Data1", ctypes.wintypes.DWORD),
-        ("Data2", ctypes.wintypes.WORD),
-        ("Data3", ctypes.wintypes.WORD),
-        ("Data4", ctypes.wintypes.BYTE * 8)
+        ("Data1", wintypes.DWORD),
+        ("Data2", wintypes.WORD),
+        ("Data3", wintypes.WORD),
+        ("Data4", wintypes.BYTE * 8)
     ]
 
     def __init__(self, uid: UUID):
@@ -120,8 +122,8 @@ class KNOWN_FOLDERS:
 
 class UserHandle:
     """Container for handle values"""
-    current = ctypes.wintypes.HANDLE(0)
-    common = ctypes.wintypes.HANDLE(-1)
+    current = wintypes.HANDLE(0)
+    common = wintypes.HANDLE(-1)
 
 
 _CoTaskMemFree = ctypes.windll.ole32.CoTaskMemFree
@@ -130,13 +132,13 @@ _CoTaskMemFree.argtypes = [ctypes.c_void_p]
 
 _SHGetKnownFolderPath = ctypes.windll.shell32.SHGetKnownFolderPath
 _SHGetKnownFolderPath.argtypes = [
-    ctypes.POINTER(GUID), ctypes.wintypes.DWORD, ctypes.wintypes.HANDLE, ctypes.POINTER(ctypes.c_wchar_p)
+    ctypes.POINTER(GUID), wintypes.DWORD, wintypes.HANDLE, ctypes.POINTER(ctypes.c_wchar_p)
 ]
 
 
 def get_known_folder_path(
         known_folder_uid: UUID,
-        user_handle: ctypes.wintypes.HANDLE = UserHandle.current) -> pathlib.Path:
+        user_handle: wintypes.HANDLE = UserHandle.current) -> pathlib.Path:
     """Return Path object for given folder identifier"""
     guid = GUID(known_folder_uid)
     p_path = ctypes.c_wchar_p()

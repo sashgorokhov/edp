@@ -5,6 +5,8 @@ http://timgolden.me.uk/python/win32_how_do_i/catch_system_wide_hotkeys.html
 """
 
 import ctypes
+from ctypes import wintypes
+
 import logging
 from typing import List, Callable, NamedTuple, Any, Optional
 
@@ -45,7 +47,7 @@ class KeyMessageDispatchThread(thread.StoppableThread):
         self._hotkey_list = hotkey_list
 
     def run(self):
-        msg = ctypes.wintypes.MSG()
+        msg = wintypes.MSG()
 
         def dummy():
             pass
