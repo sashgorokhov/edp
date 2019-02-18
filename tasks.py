@@ -216,8 +216,9 @@ def build_msi(c):
     c.run(f'{CANDLE} -nologo -arch x64 -dDistDir={DIST_DIR} -o {DIST_DIR_FILES_OBJ} {DIST_DIR_FILES_WXS}', hide='out')
 
     print(f'\t Compile wix objects into {WIX_MSI}')
-    c.run(f'{LIGHT} -nologo -cultures:en-us -pdbout {str(BUILD_DIR / WIX_MSI.stem) + ".wixpdb"} '
-          f'-ext WixUIExtension -ext WixUtilExtension -o {WIX_MSI} {MAIN_OBJ} {DIST_DIR_FILES_OBJ}', warn=True)
+    c.run(f'{LIGHT} -nologo -cultures:en-us -pdbout {str(BUILD_DIR / WIX_MSI.stem) + ".wixpdb"} -sw1076 '
+          f'-ext WixUIExtension -ext WixUtilExtension -o {WIX_MSI} -reusecab -cc {BUILD_DIR / "cabcache"} '
+          f'{MAIN_OBJ} {DIST_DIR_FILES_OBJ}', warn=True)
 
 
 @task(test, build, dist, build_msi)

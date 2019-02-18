@@ -5,9 +5,10 @@
 <?define ProductManufacturer = "Alexander Gorokhov"?>
 <?define ProductExecutable = "elite_dangerous_platform.exe"?>
 <?define ProductUpgradeCode = "367ac562-cf7a-47ea-b036-c8315f61b424"?>
+<?define ProductHKCUPath = "Software\Microsoft\$(var.ProductName)"?>
 
 
-<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
     <Product Id="*"
              UpgradeCode="$(var.ProductUpgradeCode)"
              Name="$(var.ProductName)"
@@ -21,6 +22,8 @@
                  Compressed="yes"
                  Manufacturer="$(var.ProductManufacturer)"
                  InstallScope="perUser"
+                 Keywords="Installer"
+                 Description="Install $(var.ProductName)"
         />
 
         <MajorUpgrade AllowDowngrades="yes" AllowSameVersionUpgrades="no"/>
@@ -37,6 +40,7 @@
         </UI>
 
         <WixVariable Id="WixUILicenseRtf" Value="$(var.DistDir)\LICENSE.rtf"/>
+        <Property Id="ARPHELPLINK" Value="https://sashgorokhov.github.io/edp/"/>
 
         <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value="Thank you for choosing $(var.ProductName)!"/>
         <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch $(var.ProductName)"/>
@@ -48,10 +52,51 @@
             <Directory Id="LocalAppDataFolder">
                 <Directory Id="InstallDir" Name="$(var.ProductName)"/>
             </Directory>
+            <Directory Id="ProgramMenuFolder">
+                <Directory Id="ApplicationProgramsFolder" Name="$(var.ProductName)"/>
+            </Directory>
+            <Directory Id="DesktopFolder"/>
         </Directory>
+
+        <DirectoryRef Id="ApplicationProgramsFolder">
+            <Component Id="ApplicationShortcut" Guid="af336890-4f48-41ec-abf9-a32b53e0ada8">
+                <Shortcut Id="ApplicationStartMenuShortcut"
+                          Name="$(var.ProductName)"
+                          Description="Launch $(var.ProductName)"
+                          Target="[#$(var.ProductExecutable)]"
+                          WorkingDirectory="InstallDir"/>
+                <util:InternetShortcut Id="OnlineDocumentationShortcut"
+                                       Name="Online documentation"
+                                       Target="https://sashgorokhov.github.io/edp/"
+                />
+                <Shortcut Id="UninstallProduct"
+                          Name="Uninstall"
+                          Target="[SystemFolder]msiexec.exe"
+                          Arguments="/x [ProductCode]"
+                          Description="Uninstall $(var.ProductName)"/>
+                <RemoveFolder Id="CleanUpShortCut" Directory="ApplicationProgramsFolder" On="uninstall"/>
+                <RegistryValue Root="HKCU" Key="Software\Microsoft\$(var.ProductName)" Name="installed" Type="integer"
+                               Value="1" KeyPath="yes"/>
+            </Component>
+        </DirectoryRef>
+
+        <DirectoryRef Id="DesktopFolder">
+            <Component Id="ApplicationShortcutDesktop" Guid="96839fdb-1d63-4f14-9993-fcbaf6c84619">
+                <Shortcut Id="ApplicationDesktopShortcut"
+                          Name="$(var.ProductName)"
+                          Description="Launch $(var.ProductName)"
+                          Target="[#$(var.ProductExecutable)]"
+                          WorkingDirectory="InstallDir"/>
+                <RemoveFolder Id="DesktopFolder" On="uninstall"/>
+                <RegistryValue Root="HKCU" Key="$(var.ProductHKCUPath)" Name="installed" Type="integer" Value="1"
+                               KeyPath="yes"/>
+            </Component>
+        </DirectoryRef>
 
         <Feature Id="DefaultFeature" Level="1">
             <ComponentGroupRef Id="DIST_DIR_FILES"/>
+            <ComponentRef Id="ApplicationShortcut"/>
+            <ComponentRef Id="ApplicationShortcutDesktop"/>
         </Feature>
     </Product>
 </Wix>
