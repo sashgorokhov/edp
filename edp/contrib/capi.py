@@ -9,6 +9,9 @@ Usually you dont want to instantiate or subclass anything from here, just use si
 market_info_signal, profile_info_signal, shipyard_info_signal to listen for required info.
 
 This is most complicated module it took way too much time to implement it.
+
+https://user.frontierstore.net/developer/docs
+https://auth0.com/docs/api-auth/tutorials/authorization-code-grant-pkce
 """
 import base64
 import datetime
@@ -261,7 +264,7 @@ class CapiManager:
 
         token_info = self._exchange_code(code)
         if not token_info:
-            logger.error('Failed to exchange code')
+            logger.warning('Failed to exchange code')
             return
 
         self._set_token(token_info)
@@ -299,6 +302,10 @@ class CapiManager:
             response.raise_for_status()
             data = response.json()
             return TokenInfo.from_data(data)
+        except requests.HTTPError as e:
+            logger.warning(f'HTTPError {e.response.status_code} {e.response.reason} when tried '
+                           f'to exchange token: {e.response.text}, {e.request.body}')
+            return None
         except:
             logger.exception(f'Error exchanging code for token: '
                              f'{locals()["response"].text if "response" in locals() else "<no response>"}')
@@ -316,7 +323,7 @@ class CapiManager:
             return TokenInfo.from_data(data)
         except requests.HTTPError as e:
             logger.warning(f'HTTPError {e.response.status_code} {e.response.reason} when tried '
-                           f'to refresh token: {e.response.text}')
+                           f'to refresh token: {e.response.text}, {e.request.body}')
             return None
         except:
             logger.exception(f'Error refreshing token: '
