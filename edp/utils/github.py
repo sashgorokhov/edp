@@ -18,6 +18,7 @@ class GithubApi:
         if api_token:
             self._session.headers['Authorization'] = f'token {api_token}'
         self._session.headers['User-Agent'] = config.USERAGENT
+        self._session.headers['Accept'] = 'application/vnd.github.v3+json'
 
     def get_releases(self, owner: str, repo: str) -> List[Dict]:
         """Return repo releases list"""

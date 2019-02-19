@@ -122,3 +122,14 @@ def space_distance(point1: Tuple[float, float, float], point2: Tuple[float, floa
     :param point2: Tuple[x, y, z]
     """
     return math.sqrt((point2[0] - point1[0])**2 + (point2[1] - point1[1])**2 + (point2[2] - point1[2])**2)
+
+
+def version_bits(version: str) -> Tuple[int, int, int]:
+    """Return version components (major, minor, patch bits)"""
+    major, minor, patch = tuple(map(int, version.lstrip('v').split('.')))
+    return major, minor, patch
+
+
+def is_version_newer(v1: str, v2: str) -> bool:
+    """Check if v1 version string is newer than v2 version string"""
+    return version_bits(v1) > version_bits(v2)

@@ -113,6 +113,9 @@ class TabGeneral(VLayoutTab):
         layout.addWidget(label)
         yield layout
 
+        yield self.link_checkbox(settings, 'check_for_updates', 'Check for updates')
+        yield self.link_checkbox(settings, 'receive_patches', 'Check for patches updates')
+
 
 class SettingsWindow(QtWidgets.QTabWidget):
     """Settings window"""

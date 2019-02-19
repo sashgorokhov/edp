@@ -98,18 +98,18 @@ class Ui_Form(object):
         sizePolicy.setHeightForWidth(self.status_label.sizePolicy().hasHeightForWidth())
         self.status_label.setSizePolicy(sizePolicy)
         self.status_label.setStyleSheet("QLabel {\n"
-                                        "                                    color: rgb(240, 123, 5);\n"
-                                        "                                    }\n"
-                                        "\n"
-                                        "\n"
-                                        "                                    QLabel[status=false]l {\n"
-                                        "                                    color: rgb(2, 158, 76)\n"
-                                        "                                    }\n"
-                                        "\n"
-                                        "                                    QLabel[status=true]l {\n"
-                                        "                                    color: rgb(0, 179, 247)\n"
-                                        "                                    }\n"
-                                        "                                ")
+"                                    color: rgb(240, 123, 5);\n"
+"                                    }\n"
+"\n"
+"\n"
+"                                    QLabel[status=false]l {\n"
+"                                    color: rgb(2, 158, 76)\n"
+"                                    }\n"
+"\n"
+"                                    QLabel[status=true]l {\n"
+"                                    color: rgb(0, 179, 247)\n"
+"                                    }\n"
+"                                ")
         self.status_label.setObjectName("status_label")
         self.horizontalLayout_2.addWidget(self.status_label)
         self.verticalLayout.addLayout(self.horizontalLayout_2)

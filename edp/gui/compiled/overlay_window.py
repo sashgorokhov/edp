@@ -44,22 +44,22 @@ class Ui_Form(object):
         self.setup_button.setMinimumSize(QtCore.QSize(20, 20))
         self.setup_button.setMaximumSize(QtCore.QSize(199999, 20))
         self.setup_button.setStyleSheet("QPushButton {\n"
-                                        "                                    padding: 3px;\n"
-                                        "                                    color: rgb(232, 232, 232);\n"
-                                        "                                    background-color: rgb(0, 179, 247);\n"
-                                        "                                    border-style: solid;\n"
-                                        "                                    }\n"
-                                        "\n"
-                                        "                                    QPushButton:hover {\n"
-                                        "                                    background-color: rgb(10, 139, 214);\n"
-                                        "                                    }\n"
-                                        "\n"
-                                        "                                    QPushButton:pressed {\n"
-                                        "                                    color: rgb(63, 63, 63);\n"
-                                        "                                    background-color: rgb(232, 232, 232);\n"
-                                        "                                    border-color: rgb(232, 232, 232);\n"
-                                        "                                    }\n"
-                                        "                                ")
+"                                    padding: 3px;\n"
+"                                    color: rgb(232, 232, 232);\n"
+"                                    background-color: rgb(0, 179, 247);\n"
+"                                    border-style: solid;\n"
+"                                    }\n"
+"\n"
+"                                    QPushButton:hover {\n"
+"                                    background-color: rgb(10, 139, 214);\n"
+"                                    }\n"
+"\n"
+"                                    QPushButton:pressed {\n"
+"                                    color: rgb(63, 63, 63);\n"
+"                                    background-color: rgb(232, 232, 232);\n"
+"                                    border-color: rgb(232, 232, 232);\n"
+"                                    }\n"
+"                                ")
         self.setup_button.setCheckable(True)
         self.setup_button.setObjectName("setup_button")
         self.horizontalLayout_2.addWidget(self.setup_button)
@@ -109,8 +109,7 @@ class Ui_Form(object):
         spacerItem7 = QtWidgets.QSpacerItem(10, 10, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_17.addItem(spacerItem7)
         self.gridLayout.addLayout(self.verticalLayout_17, 2, 0, 1, 1)
-        spacerItem8 = QtWidgets.QSpacerItem(0, 20, QtWidgets.QSizePolicy.MinimumExpanding,
-                                            QtWidgets.QSizePolicy.Minimum)
+        spacerItem8 = QtWidgets.QSpacerItem(0, 20, QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum)
         self.gridLayout.addItem(spacerItem8, 2, 1, 1, 1)
         self.verticalLayout_3 = QtWidgets.QVBoxLayout()
         self.verticalLayout_3.setObjectName("verticalLayout_3")
@@ -122,8 +121,7 @@ class Ui_Form(object):
         spacerItem10 = QtWidgets.QSpacerItem(10, 10, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_3.addItem(spacerItem10)
         self.gridLayout.addLayout(self.verticalLayout_3, 2, 2, 1, 1)
-        spacerItem11 = QtWidgets.QSpacerItem(0, 20, QtWidgets.QSizePolicy.MinimumExpanding,
-                                             QtWidgets.QSizePolicy.Minimum)
+        spacerItem11 = QtWidgets.QSpacerItem(0, 20, QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum)
         self.gridLayout.addItem(spacerItem11, 2, 3, 1, 1)
         self.verticalLayout_5 = QtWidgets.QVBoxLayout()
         self.verticalLayout_5.setObjectName("verticalLayout_5")

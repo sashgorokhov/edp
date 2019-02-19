@@ -71,3 +71,27 @@ def test_has_keys(d, keys, result):
 ])
 def test_map_keys(d, keys_map, result):
     assert utils.map_keys(d, **keys_map) == result
+
+
+@pytest.mark.parametrize(('version_string', 'version'), [
+    ('0.0.0', (0, 0, 0)),
+    ('v0.0.0', (0, 0, 0)),
+    ('0.0.1', (0, 0, 1)),
+    ('0.1.1', (0, 1, 1)),
+    ('1.1.1', (1, 1, 1)),
+    ('v1.1.1', (1, 1, 1)),
+])
+def test_version_bits(version_string, version):
+    assert utils.version_bits(version_string) == version
+
+
+@pytest.mark.parametrize(('v1', 'v2', 'newer'), [
+    ('0.0.0', '0.0.0', False),
+    ('0.0.0', '0.0.1', False),
+    ('0.0.1', '0.0.1', False),
+    ('0.1.0', '0.0.1', True),
+    ('1.0.0', '0.0.1', True),
+    ('1.0.0', '0.1.0', True),
+])
+def test_is_version_newer(v1, v2, newer):
+    assert utils.is_version_newer(v1, v2) == newer

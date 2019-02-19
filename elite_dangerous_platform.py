@@ -7,7 +7,7 @@ import traceback
 import inject
 import sentry_sdk
 
-from edp.contrib import discord_rich_presence, inara
+from edp.contrib import discord_rich_presence, inara, updater
 
 
 def main():
@@ -27,6 +27,8 @@ def main():
     with sentry_sdk.configure_scope() as scope:
         scope.user = {'id': settings.user_id}
         scope.set_tag('platform', platform.platform())
+
+        logger.info(f'Starting, v{config.VERSION}, user={settings.user_id}')
 
         logger.info('Initializing thread manager')
         thread_manager = thread.ThreadManager()
@@ -50,6 +52,7 @@ def main():
         plugin_loader.add_plugin(inara.InaraPlugin)
         plugin_loader.add_plugin(capi.CapiPlugin)
         plugin_loader.add_plugin(overlay_ui.OverlayPlugin)
+        plugin_loader.add_plugin(updater.UpdaterPlugin)
         plugin_loader.load_plugins()
 
         plugin_manager = plugins.PluginManager(plugin_loader.get_plugins())
