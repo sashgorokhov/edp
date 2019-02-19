@@ -20,8 +20,9 @@ else:
 
 LOCALAPPDATA_DIR: Path = Path(os.environ.get('LOCALAPPDATA', BASE_DIR / 'LOCALAPPDATA'))
 APP_DATA_DIR: Path = LOCALAPPDATA_DIR / 'Elite Dangerous Platform'
-SETTINGS_DIR: Path = APP_DATA_DIR / 'Settings'
-LOGS_DIR: Path = APP_DATA_DIR / 'Logs'
+PERSONAL_DATA_DIR = LOCALAPPDATA_DIR / 'Elite Dangerous Platform - User Data'
+SETTINGS_DIR: Path = PERSONAL_DATA_DIR / 'Settings'
+LOGS_DIR: Path = PERSONAL_DATA_DIR / 'Logs'
 DIST_FILE: Path = BASE_DIR / 'dist.json'
 
 VERSION_PATH: Path = BASE_DIR / 'VERSION'
