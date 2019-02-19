@@ -62,7 +62,9 @@ class BaseSettings(UserDict):
             if hasattr(self.__class__, key) and key not in BaseSettings.__dict__:
                 value = getattr(self, key)
                 self.__class__.__attributes__[key] = value
-                self.data.setdefault(key, value)
+                # cant use setdefault here
+                if key not in self.data:
+                    self.data[key] = value
                 delattr(self.__class__, key)
             elif key in self.__class__.__attributes__:
                 self.data.setdefault(key, self.__class__.__attributes__[key])
