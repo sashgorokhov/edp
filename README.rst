@@ -10,8 +10,10 @@ Elite Dangerous Platform (EDP)
     :target: https://codecov.io/gh/sashgorokhov/edp
 
 --------
-Overview
+Overview  
 --------
+
+.. image:: assets/app_icon.ico
 
 This application lets you connect in a simple and convenient way with your favourite online `Elite: Dangerous` services.
 It offers a quality platform for developing `Elite: Dangerous` plugins giving an easy and straitforward way
@@ -31,19 +33,9 @@ Built-in plugins:
 Installation
 ------------
 
-Plain zip install:
-++++++++++++++++++
-
-#. Download latest release `.zip` here: https://github.com/sashgorokhov/edp/releases
-#. Extract it to a location of your choice
-#. Run ``elite_dangerous_platform.exe``
-
-When updating, just replace that directory with updated one.
-
-MSI installation package:
-+++++++++++++++++++++++++
 #. Download latest release `.msi` here: https://github.com/sashgorokhov/edp/releases
-#. Run it
+#. Install application
+#. Launch application via desctop shortcut or start menu shortcut
 
 This will also properly handle updates. Just download new version and install it.
 
