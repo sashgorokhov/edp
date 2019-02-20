@@ -30,6 +30,9 @@
 
         <Media Id="1" Cabinet="product.cab" EmbedCab="yes"/>
 
+        <Icon Id="app_icon" SourceFile="$(var.AssetsDir)\app_icon.ico"/>
+        <Property Id="ARPPRODUCTICON" Value="app_icon" />
+
         <UI>
             <UIRef Id="WixUI_Minimal"/>
             <Publish Dialog="ExitDialog"

@@ -18,25 +18,26 @@ from invoke import Context, Exit, task
 from urlpath import URL
 
 BASE_DIR = Path(__file__).parent
-GUI_DIR = BASE_DIR / 'edp' / 'gui'
-UI_DIR = GUI_DIR / 'ui'
-COMPILED_DIR = GUI_DIR / 'compiled'
+GUI_DIR: Path = BASE_DIR / 'edp' / 'gui'
+UI_DIR: Path = GUI_DIR / 'ui'
+COMPILED_DIR: Path = GUI_DIR / 'compiled'
 
 UPX_URL = 'https://github.com/upx/upx/releases/download/v3.95/upx-3.95-win64.zip'
-LOCAL_TEMP_DIR = BASE_DIR / '.tmp'
-UPX_DIR = LOCAL_TEMP_DIR / 'upx'
-TARGET = BASE_DIR / 'elite_dangerous_platform.py'
-DIST_DIR = BASE_DIR / 'dist' / TARGET.stem
-BUILD_DIR = BASE_DIR / 'build'
-BUILD_TARGET_DIR = BUILD_DIR / TARGET.stem
-DIST_ZIP = DIST_DIR.with_suffix('.zip')
-EXE_FILE = DIST_DIR / TARGET.with_suffix('.exe').name
-DIST_DATA_FILE = DIST_DIR / 'dist.json'
+LOCAL_TEMP_DIR: Path = BASE_DIR / '.tmp'
+UPX_DIR: Path = LOCAL_TEMP_DIR / 'upx'
+TARGET: Path = BASE_DIR / 'elite_dangerous_platform.py'
+DIST_DIR: Path = BASE_DIR / 'dist' / TARGET.stem
+BUILD_DIR: Path = BASE_DIR / 'build'
+BUILD_TARGET_DIR: Path = BUILD_DIR / TARGET.stem
+DIST_ZIP: Path = DIST_DIR.with_suffix('.zip')
+EXE_FILE: Path = DIST_DIR / TARGET.with_suffix('.exe').name
+DIST_DATA_FILE: Path = DIST_DIR / 'dist.json'
+ASSETS_DIR: Path = BASE_DIR / 'assets'
 
 WIX_URL = URL('https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311-binaries.zip')
-WIX_DIR = LOCAL_TEMP_DIR / WIX_URL.stem
+WIX_DIR: Path = LOCAL_TEMP_DIR / WIX_URL.stem
 
-WIX_MSI = BASE_DIR / 'dist' / 'elite_dangerous_platform.msi'
+WIX_MSI: Path = BASE_DIR / 'dist' / 'elite_dangerous_platform.msi'
 
 LOCAL_TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -74,9 +75,21 @@ def pyuic(c):  # pylint: disable=unused-argument
     from PyQt5.uic import compileUi
 
     for path in UI_DIR.glob('*.ui'):
+        target_path: Path = COMPILED_DIR / path.with_suffix('.py').name
+        print(f'Compiling {path.name} to {target_path}')
+        compileUi(str(path), target_path.open('w'), import_from='edp.gui.compiled', from_imports=True,
+                  resource_suffix='')
+
+
+@task()
+def pyrcc(c):
+    """Compiles *.qrc files found in ASSETS_DIR into .py files in COMPILED_DIR"""
+    from PyQt5.pyrcc_main import processResourceFile
+
+    for path in ASSETS_DIR.glob('*.qrc'):
         target_path = COMPILED_DIR / path.with_suffix('.py').name
         print(f'Compiling {path.name} to {target_path}')
-        compileUi(str(path), target_path.open('w'))
+        processResourceFile([str(path)], str(target_path), False)
 
 
 def gethashsum(path, md5=False, sha1=False):
@@ -163,7 +176,10 @@ def build(c):
     if not UPX_DIR.exists():
         fetch_upx(c)
 
-    c.run(f'pyinstaller -w -y --clean --log-level WARN --upx-dir {UPX_DIR} {TARGET}')
+    c.run(f'pyinstaller -w -y --clean --log-level WARN '
+          f'--upx-dir {UPX_DIR} '
+          f'-i {ASSETS_DIR / "app_icon.ico"} '
+          f'{TARGET}')
     for path in COPY_TO_DIST_FILES:
         shutil.copy(str(path), str(DIST_DIR / path.relative_to(BASE_DIR)))
 
@@ -210,6 +226,7 @@ def build_msi(c):
 
     print(f'\t Compile main wix xml into obj')
     c.run(f'{CANDLE} -nologo -arch x64 -dVersion={".".join(map(str, version_bits))} -dDistDir={DIST_DIR} '
+          f'-dAssetsDir={ASSETS_DIR} '
           f'-ext WixUIExtension -ext WixUtilExtension -o {MAIN_OBJ} {MAIN_WXS}', hide='out')
 
     print(f'\t Compile dist files wix xml into obj')

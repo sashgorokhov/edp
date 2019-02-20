@@ -19,6 +19,9 @@ class Ui_MainWindow(object):
         font.setPointSize(8)
         font.setKerning(True)
         MainWindow.setFont(font)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/icons/app_icon.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        MainWindow.setWindowIcon(icon)
         MainWindow.setWindowOpacity(1.0)
         MainWindow.setToolButtonStyle(QtCore.Qt.ToolButtonIconOnly)
         MainWindow.setAnimated(True)
@@ -60,3 +63,4 @@ class Ui_MainWindow(object):
         self.actionOverview.setText(_translate("MainWindow", "Overview"))
         self.actionEvent_list.setText(_translate("MainWindow", "Event list"))
 
+from edp.gui.compiled import main_resources
