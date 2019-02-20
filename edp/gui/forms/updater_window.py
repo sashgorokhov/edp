@@ -42,7 +42,7 @@ class ReleaseDownloaderThread(QtCore.QThread):
     def install(self, path: Path):
         """Install msi package at path"""
         logger.debug(f'Installing {path}')
-        status, output = subprocess.getstatusoutput(f'{path} /passive')
+        status, output = subprocess.getstatusoutput(f'{path}')
         if status != 0:
             logger.error(output)
         elif output.strip():
