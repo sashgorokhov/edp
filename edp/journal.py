@@ -213,8 +213,8 @@ class JournalReader:
         events = self.get_latest_file_events()
         for event in events:
             if event.name == 'Fileheader':
-                gameversion = event.data.get('gameversion', 'unknown')
-                build = event.data.get('build', 'unknown')
+                gameversion = event.data.get('gameversion', None) or 'unknown'
+                build = event.data.get('build', None) or 'unknown'
                 return VersionInfo(gameversion, build)
         return None
 

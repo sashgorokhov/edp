@@ -6,9 +6,11 @@ from typing import List, Union, Dict
 from unittest import mock
 
 import pytest
+from hypothesis import strategies, given
 
 from edp import journal
 from edp.journal import Event
+from edp.utils import hypothesis_strategies
 
 TEST_EVENT_1 = ('{"timestamp": "2018-06-07T08:09:10Z", "event": "test 1", "foo": "bar"}',
                 Event(datetime.datetime(2018, 6, 7, 8, 9, 10), 'test 1',
@@ -278,3 +280,23 @@ def test_filter_file_event_second_time_newer(journal_reader):
 
     event2 = Event(datetime.datetime.now() + datetime.timedelta(minutes=1), 'test', {}, '{}')
     assert journal_reader._filter_file_event(event2) is event2
+
+
+@given(events_list=strategies.lists(hypothesis_strategies.event_strategy('Test')()))
+def test_get_game_version_info_no_event(journal_reader, events_list):
+    with mock.patch.object(journal_reader, 'get_latest_file_events') as m:
+        m.return_value = events_list
+        assert journal_reader.get_game_version_info() is None
+
+
+@given(fields=strategies.dictionaries(keys=strategies.sampled_from(('gameversion', 'build')),
+                                      values=strategies.none() | strategies.text()))
+def test_get_game_version_info(journal_reader, fields):
+    event = hypothesis_strategies.make_event('Fileheader', timestamp=datetime.datetime.now(), **fields)
+    with mock.patch.object(journal_reader, 'get_latest_file_events') as m:
+        m.return_value = [hypothesis_strategies.make_event('Test'), event]
+        game_version = journal_reader.get_game_version_info()
+
+    assert game_version is not None
+    assert game_version.version is not None
+    assert game_version.build is not None

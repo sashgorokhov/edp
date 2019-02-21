@@ -4,3 +4,4 @@ dataclasses
 PyQt5
 urlpath
 sentry-sdk
+dpcontracts

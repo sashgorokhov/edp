@@ -132,6 +132,7 @@ class ThreadManager:
 
     def stop(self):
         """Stop registered threads"""
+        self._started = False
         for thread in self._threads:
             try:
                 thread.stop()

@@ -111,7 +111,7 @@ class BasePlugin:
 
         Checked when firing bind signals and scheduled functions
         """
-        return True
+        return True  # pragma: no cover
 
     def get_settings_widget(self) -> Optional[QtWidgets.QWidget]:
         """

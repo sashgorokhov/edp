@@ -90,11 +90,11 @@ def map_keys(d: Dict[str, Any], strict: bool = False, **key_map: str) -> Dict[st
     :raises KeyError: if strict=True and key from `keys` not found in `d`
     """
     result = {}
-    for key, value in d.items():
-        if key not in key_map and strict:
+    for key, value in key_map.items():
+        if key not in d and strict:
             raise KeyError(key)
-        if key in key_map:
-            result[key_map[key]] = value
+        if key in d:
+            result[value] = d[key]
 
     return result
 

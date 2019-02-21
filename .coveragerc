@@ -1,6 +1,7 @@
 [run]
 branch = True
 omit =
+    */edp/gui/compiled/*.py
     */edp/utils/winpaths.py
     */edp/utils/winhotkeys.py
 

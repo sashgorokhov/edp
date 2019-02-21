@@ -14,7 +14,7 @@ class ThreadTest(StoppableThread):
     def run(self):
         while not self.is_stopped:
             self.mock()
-            self.sleep(1)
+            self.sleep(0.1)
 
 
 def test_stoppable_thread_starts():
@@ -142,6 +142,20 @@ def test_thread_manager_start_threads_exception():
     mock_thread_2.start.assert_called_once()
 
 
+def test_thread_manager_stop_threads_exception():
+    mock_thread_1 = mock.MagicMock(spec=StoppableThread)
+    mock_thread_1.stop.side_effect = ValueError
+    mock_thread_2 = mock.MagicMock(spec=StoppableThread)
+
+    manager = ThreadManager()
+    manager.add_threads(mock_thread_1, mock_thread_2)
+
+    manager.stop()
+
+    mock_thread_1.stop.assert_called_once()
+    mock_thread_2.stop.assert_called_once()
+
+
 def test_thread_manager_contextmanager():
     mock_thread_1 = mock.MagicMock(spec=StoppableThread)
     mock_thread_2 = mock.MagicMock(spec=StoppableThread)
@@ -157,3 +171,35 @@ def test_thread_manager_contextmanager():
 
     mock_thread_1.stop.assert_called_once()
     mock_thread_2.stop.assert_called_once()
+
+
+def test_interval_runner_thread_skipfirst():
+    mockfunc = mock.MagicMock()
+
+    with IntervalRunnerThread(mockfunc, interval=0.2, skipfirst=True) as thread:
+        time.sleep(0.5)
+
+    time.sleep(0.1)
+
+    assert mockfunc.call_count == 2
+
+
+def test_thread_manager_starts_threads_if_started():
+    manager = ThreadManager()
+    manager.start()
+
+    assert manager._started
+
+    mock_thread_1 = mock.MagicMock(spec=StoppableThread)
+    manager.add_thread(mock_thread_1)
+
+    mock_thread_1.start.assert_called_once()
+
+
+def test_thread_manager_add_interval_thread():
+    manager = ThreadManager()
+    target = mock.MagicMock()
+    manager.add_interval_thread(target, interval=0.1)
+
+    assert len(manager._threads) == 1
+    assert manager._threads[0]._target is target

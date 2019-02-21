@@ -18,7 +18,7 @@ from edp import entities, signals
 from edp.journal import JournalReader, Event, journal_event_signal, VersionInfo
 from edp.plugins import BasePlugin
 from edp.signalslib import Signal
-from edp.utils import plugins_helpers
+from edp.utils import plugins_helpers, has_keys
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class GameStateData(entities.BaseEntity):
     """Game state data container"""
     commander: entities.Commander = entities.Commander()
-    material_storage: entities.MaterialStorage = entities.MaterialStorage()
+    material_storage: entities.MaterialStorage = dataclasses.field(default_factory=entities.MaterialStorage)
     ship: entities.Ship = entities.Ship()
     rank: entities.Rank = entities.Rank()
     reputation: entities.Reputation = entities.Reputation()
@@ -42,6 +42,7 @@ class GameStateData(entities.BaseEntity):
     def __init__(self):
         self.engineers = {}
         self.version = VersionInfo()
+        self.material_storage = entities.MaterialStorage()
         super(GameStateData, self).__init__()
 
     @classmethod
@@ -140,8 +141,8 @@ def materials_event(event: Event, state: GameStateData):
     """
     for category in ['Raw', 'Encoded', 'Manufactured']:
         for material_data in event.data.get(category, []):  # type: ignore
-            if {'Name', 'Count'}.issubset(set(material_data.keys())):
-                state.material_storage += entities.Material(material_data['Name'], material_data['Count'], category)
+            if has_keys(material_data, 'Name', 'Count'):
+                state.material_storage.add_material(material_data['Name'], material_data['Count'], category)
 
 
 @mutation_registry.register('LoadGame')
@@ -318,14 +319,10 @@ def material_collected_event(event: Event, state: GameStateData):
 
     Updates material count in material storage
     """
-    if not {'Category', 'Name', 'Count'}.issubset(event.data.keys()):
+    if not has_keys(event.data, 'Category', 'Name', 'Count'):
         return
 
-    category: str = str(event.data['Category'])
-    name: str = str(event.data['Name'])
-    count = int(event.data['Count'])  # type: ignore
-
-    state.material_storage += entities.Material(name, count, category)
+    state.material_storage.add_material(event.data['Name'], event.data['Count'], event.data['Category'])
 
 
 # pylint: disable=unused-argument
@@ -357,14 +354,13 @@ def material_discarded_event(event: Event, state: GameStateData):
 
     Removes material from material storage
     """
-    if not {'Category', 'Name', 'Count'}.issubset(event.data.keys()):
+    if not has_keys(event.data, 'Category', 'Name', 'Count'):
         return
 
-    category: str = str(event.data['Category'])
-    name: str = str(event.data['Name'])
-    count = int(event.data['Count'])  # type: ignore
+    state.material_storage.remove_material(event.data['Name'], event.data['Count'], event.data['Category'])
 
-    state.material_storage -= entities.Material(name, count, category)
+
+filter_material = lambda seq: filter(lambda m: has_keys(m, 'Name', 'Count'), seq)
 
 
 @mutation_registry.register('Synthesis')
@@ -374,10 +370,10 @@ def synthesis_event(event: Event, state: GameStateData):
 
     Removes materials from material storage
     """
-    for material in event.data.get('Materials', []):
+    for material in filter_material(event.data.get('Materials', [])):
         for category in ['Raw', 'Encoded', 'Manufactured']:
             if material['Name'] in state.material_storage[category]:
-                state.material_storage -= entities.Material(material['Name'], material['Count'], category)
+                state.material_storage.remove_material(material['Name'], material['Count'], category)
 
 
 @mutation_registry.register('MissionCompleted')
@@ -387,8 +383,8 @@ def on_mission_completed_event(event: Event, state: GameStateData):
 
     Adds materials to material storage if mission has materials rewards
     """
-    for material in event.data.get('MaterialsReward', []):
-        state.material_storage += entities.Material(material['Name'], material['Count'], material['Category'])
+    for material in filter_material(event.data.get('MaterialsReward', [])):
+        state.material_storage.add_material(material['Name'], material['Count'], material['Category'])
 
 
 @mutation_registry.register('MaterialTrade')
@@ -400,18 +396,8 @@ def on_material_trade_event(event: Event, state: GameStateData):
     """
     paid = event.data['Paid']
     received = event.data['Received']
-    state.material_storage -= entities.Material(paid['Material'], paid['Quantity'], paid['Category'])
-    state.material_storage += entities.Material(received['Material'], received['Quantity'], received['Category'])
-
-
-@mutation_registry.register('MaterialDiscarded')
-def on_material_discarded_event(event: Event, state: GameStateData):
-    """
-    Handle MaterialDiscarded journal event
-
-    Removes material from material storage
-    """
-    state.material_storage -= entities.Material(event.data['Name'], event.data['Count'], event.data['Category'])
+    state.material_storage.remove_material(paid['Material'], paid['Quantity'], paid['Category'])
+    state.material_storage.add_material(received['Material'], received['Quantity'], received['Category'])
 
 
 @mutation_registry.register('EngineerCraft')
@@ -421,10 +407,10 @@ def on_engineer_craft_event(event: Event, state: GameStateData):
 
     Removes materials from material storage
     """
-    for material in event.data.get('Ingredients', []):
+    for material in filter_material(event.data.get('Ingredients', [])):
         for category in ['Raw', 'Encoded', 'Manufactured']:
             if material['Name'] in state.material_storage[category]:
-                state.material_storage -= entities.Material(material['Name'], material['Count'], category)
+                state.material_storage.remove_material(material['Name'], material['Count'], category)
 
 
 @mutation_registry.register('FileHeader')

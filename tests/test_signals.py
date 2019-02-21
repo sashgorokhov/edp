@@ -171,3 +171,19 @@ def test_signal_execution_e2e():
         time.sleep(1)
 
     mock_func.assert_called_once_with(foo='test', bar=1)
+
+
+def test_signal_bind_nonstrict():
+    m = mock.MagicMock()
+    signal = signalslib.Signal('Test', foo=dict)
+    signal.bind_nonstrict(m)
+
+
+def test_signal_emit_eager():
+    m = mock.MagicMock()
+    signal = signalslib.Signal('Test', test=str)
+    signal.bind_nonstrict(m)
+
+    signal.emit_eager(test='test')
+
+    m.assert_called_once_with(test='test')

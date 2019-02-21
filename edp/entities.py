@@ -1,10 +1,14 @@
 """
 Define all game and journal entities to have determined and typed behavior
 """
+from collections import defaultdict
 from operator import attrgetter, methodcaller
 from typing import Dict, Optional, Tuple, List
 
 import dataclasses
+from dpcontracts import PreconditionError
+
+from edp.contracts import PositiveInt, NotEmptyStr, require_contract
 
 
 class BaseEntity:
@@ -80,7 +84,7 @@ class Material(BaseEntity):
         if not isinstance(other, Material):
             raise TypeError(f"unsupported operand type(s) for +: '{type(self)}' and '{type(other)}'")
         if self.name == other.name and self.category == other.category:
-            self.count += other.count
+            self.count += abs(other.count)
         else:
             raise TypeError(f'Materials are not the same: {self} != {other}')
         return self
@@ -89,7 +93,7 @@ class Material(BaseEntity):
         if not isinstance(other, Material):
             raise TypeError(f"unsupported operand type(s) for +: '{type(self)}' and '{type(other)}'")
         if self.name == other.name and self.category == other.category:
-            self.count -= other.count
+            self.count -= abs(other.count)
             if self.count < 0:
                 self.count = 0
         else:
@@ -97,15 +101,10 @@ class Material(BaseEntity):
         return self
 
 
-@dataclasses.dataclass
-class MaterialStorage(BaseEntity):
+class MaterialStorage:
     """
-    Defines material storage - container for all materials grouped by category.
+    Represents materials storage
     """
-    raw: Dict[str, Material] = dataclasses.field(default_factory=dict)
-    encoded: Dict[str, Material] = dataclasses.field(default_factory=dict)
-    manufactured: Dict[str, Material] = dataclasses.field(default_factory=dict)
-
     _category_map = {
         'Raw': 'raw',
         'Encoded': 'encoded',
@@ -118,35 +117,58 @@ class MaterialStorage(BaseEntity):
         '$MICRORESOURCE_CATEGORY_Raw': 'raw',
     }
 
-    def __getitem__(self, item):
-        if item in self._category_map:
-            return getattr(self, self._category_map[item])
-        # noinspection PyUnresolvedReferences
-        raise AttributeError('__getitem__ called with wrong argument')
+    def __init__(self):
+        super(MaterialStorage, self).__init__()
+        # Material category -> Material name -> Material count
+        self._data: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
-    def __iadd__(self, material):
-        if not isinstance(material, Material):
-            raise TypeError(f"unsupported operand type(s) for +: '{type(self)}' and '{type(material)}'")
-        else:
-            category: Dict[str, Material] = self[material.category]
+    @require_contract('category', NotEmptyStr)
+    def __getitem__(self, category: str) -> Dict[str, int]:
+        """Return materials in category"""
+        if category not in self._category_map:
+            raise PreconditionError(f'`category` must be one of {tuple(self._category_map.keys())}')
+        return self._data[self._category_map[category]]
 
-            if material.name in category:
-                category[material.name].count += material.count
-            else:
-                category[material.name] = material
-        return self
+    @require_contract('name', NotEmptyStr)
+    @require_contract('count', PositiveInt)
+    @require_contract('category', NotEmptyStr)
+    def add_material(self, name: str, count: int, category: str) -> int:
+        """
+        Add material to storage.
 
-    def __isub__(self, material):
-        if not isinstance(material, Material):
-            raise TypeError(f"unsupported operand type(s) for -: '{type(self)}' and '{type(material)}'")
-        else:
-            category: Dict[str, Material] = self[material.category]
+        Returns this material count in storage.
+        """
+        self[category][name] += count
+        return self[category][name]
 
-            if material.name in category:
-                category[material.name].count -= material.count
-                if category[material.name].count < 0:
-                    category[material.name].count = 0
-        return self
+    @require_contract('name', NotEmptyStr)
+    @require_contract('count', PositiveInt)
+    @require_contract('category', NotEmptyStr)
+    def remove_material(self, name: str, count: int, category: str) -> int:
+        """
+        Remove material from storage.
+
+        Returns this material count in storage.
+        """
+        self[category][name] -= count
+        if self[category][name] < 0:
+            self[category][name] = 0
+        return self[category][name]
+
+    @property
+    def raw(self) -> Dict[str, int]:
+        """Shortcut for raw category materials"""
+        return self['raw']
+
+    @property
+    def encoded(self) -> Dict[str, int]:
+        """Shortcut for encoded category materials"""
+        return self['encoded']
+
+    @property
+    def manufactured(self) -> Dict[str, int]:
+        """Shortcut for manufactured category materials"""
+        return self['manufactured']
 
 
 @dataclasses.dataclass

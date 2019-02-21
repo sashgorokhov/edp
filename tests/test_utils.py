@@ -73,6 +73,15 @@ def test_map_keys(d, keys_map, result):
     assert utils.map_keys(d, **keys_map) == result
 
 
+@pytest.mark.parametrize(('d', 'keys_map'), [
+    ({}, {'foo': 2}),
+    ({1: 2}, {'foo': 3}),
+])
+def test_map_keys_strict(d, keys_map):
+    with pytest.raises(KeyError):
+        utils.map_keys(d, **keys_map, strict=True)
+
+
 @pytest.mark.parametrize(('version_string', 'version'), [
     ('0.0.0', (0, 0, 0)),
     ('v0.0.0', (0, 0, 0)),
@@ -95,3 +104,10 @@ def test_version_bits(version_string, version):
 ])
 def test_is_version_newer(v1, v2, newer):
     assert utils.is_version_newer(v1, v2) == newer
+
+
+@pytest.mark.parametrize(('p1', 'p2', 'result'), [
+    ((1, 1, 1), (2, 2, 2), 1.732)
+])
+def test_space_distance(p1, p2, result):
+    assert round(utils.space_distance(p1, p2), 3)

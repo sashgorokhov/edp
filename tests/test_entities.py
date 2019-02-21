@@ -1,5 +1,7 @@
 import dataclasses
 import pytest
+from dpcontracts import PreconditionError
+from hypothesis import strategies as st, given
 
 from edp import entities
 
@@ -103,17 +105,39 @@ def test_material_sum_different_materials():
         result = m1 + m2
 
 
-def test_material_storage_sum_material():
-    material_storage = entities.MaterialStorage()
-    m = entities.Material('test', 1, 'raw')
+@given(name=st.text(min_size=1),
+       count=st.integers(min_value=1),
+       category=st.sampled_from(tuple(entities.MaterialStorage._category_map.keys())))
+def test_material_storage_add_material(name: str, count: int, category: str):
+    storage = entities.MaterialStorage()
+    assert storage.add_material(name=name, count=count, category=category) == count
 
-    material_storage += m
 
-    assert 'test' in material_storage.raw
-    assert material_storage.raw['test'].count == 1
+@given(name=st.none() | st.text(max_size=0) | st.integers(),
+       count=st.none() | st.integers(max_value=0) | st.text(),
+       category=st.none() | st.integers() | st.sampled_from(tuple(entities.MaterialStorage._category_map.keys())))
+def test_material_storage_add_material_failed_preconditions(name: str, count: int, category: str):
+    storage = entities.MaterialStorage()
+    with pytest.raises(PreconditionError):
+        storage.add_material(name=name, count=count, category=category)
 
-    m2 = entities.Material('test', 2, 'raw')
 
-    material_storage += m2
+@given(name=st.text(min_size=1),
+       category=st.sampled_from(tuple(entities.MaterialStorage._category_map.keys())))
+@pytest.mark.parametrize(('existing', 'remove', 'result'), [
+    (5, 1, 4),
+    (5, 5, 0),
+    (5, 6, 0),
+    (0, 3, 0),
+])
+def test_material_storage_remove_material(existing, remove, result, name, category):
+    storage = entities.MaterialStorage()
+    storage[category][name] = existing
+    assert storage.remove_material(name, remove, category) == result
 
-    assert material_storage.raw['test'].count == 3
+
+@pytest.mark.parametrize('category', ['raw', 'encoded', 'manufactured'])
+def test_material_storage_shortcut_access(category):
+    storage = entities.MaterialStorage()
+    storage[category]['test'] = 5
+    assert getattr(storage, category)['test'] == 5
