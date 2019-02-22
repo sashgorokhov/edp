@@ -71,7 +71,7 @@ T = TypeVar('T')
 
 def chunked(l: Sequence[T], size: int = 5) -> Iterator[Sequence[T]]:
     """Split `sequence` in `size` parts"""
-    indexes = list(range(len(l)))[::5]
+    indexes = list(range(len(l)))[::size]
 
     for start in indexes:
         yield l[start: start + size]

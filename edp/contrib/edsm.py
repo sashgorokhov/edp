@@ -94,13 +94,10 @@ class EDSMApi:
     @functools.lru_cache(120)
     def get_system(self, name: str) -> dict:
         """Return edsm system id by its name"""
-        response = self._session.post(
-            'https://www.edsm.net/api-v1/system', json={'systemName': name, 'showId': 1}, timeout=self.timeout)
-        try:
-            return response.json()
-        except json.JSONDecodeError:
-            logger.exception(f'Cant decode json: {response.text}')
-            return {}
+        response = self._session.post('https://www.edsm.net/api-v1/system',
+                                      json={'systemName': name, 'showId': 1},
+                                      timeout=self.timeout)
+        return response.json()
 
 
 T = TypeVar('T')

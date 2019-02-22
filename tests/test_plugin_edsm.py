@@ -3,9 +3,11 @@ import json
 from unittest import mock
 
 import pytest
+import requests
 
 from edp import plugins, journal, utils
 from edp.contrib import edsm, gamestate
+from edp.utils import hypothesis_strategies
 
 
 def test_edsm_settings_fields_defaults():
@@ -46,6 +48,14 @@ def test_journal_event(edsm_api, events, status_code):
     assert data['commanderName'] == edsm_api._commander_name
     assert data['apiKey'] == edsm_api._api_key
     assert data['message'] == tuple(events)
+
+
+def test_get_system(edsm_api):
+    edsm_api.get_system('test')
+    assert 'timeout' in edsm_api._session.post.call_args[1]
+    assert 'json' in edsm_api._session.post.call_args[1]
+    assert edsm_api._session.post.call_args[1]['json']['systemName'] == 'test'
+    assert edsm_api._session.post.call_args[1]['json']['showId'] == 1
 
 
 @pytest.fixture()
@@ -143,13 +153,8 @@ def test_patch_event(plugin, event_str):
         .issubset(set(patched_event_data.keys()))
 
 
-def test_push_events_event_patched_with_state(mock_api, plugin):
-    events = [
-        journal.Event(datetime.datetime.now(), 'test1', {}, '{}'),
-        journal.Event(datetime.datetime.now(), 'test2', {'foo': 'bar'}, '{"foo": "bar"}'),
-        journal.Event(datetime.datetime.now(), 'test3', {'event': 'test3'}, '{"event": "test3"}'),
-    ]
-
+@pytest.fixture()
+def state():
     state = gamestate.GameStateData.get_clear_data()
     state.location.address = 'test_address'
     state.location.system = 'test_system'
@@ -157,6 +162,16 @@ def test_push_events_event_patched_with_state(mock_api, plugin):
     state.location.station.market = 'test_market'
     state.location.station.name = 'test_name'
     state.ship.id = 1
+
+    return state
+
+
+def test_push_events_event_patched_with_state(mock_api, plugin, state):
+    events = [
+        journal.Event(datetime.datetime.now(), 'test1', {}, '{}'),
+        journal.Event(datetime.datetime.now(), 'test2', {'foo': 'bar'}, '{"foo": "bar"}'),
+        journal.Event(datetime.datetime.now(), 'test3', {'event': 'test3'}, '{"event": "test3"}'),
+    ]
 
     plugin.gamestate = mock.Mock()
     plugin.gamestate.state = state
@@ -170,3 +185,28 @@ def test_push_events_event_patched_with_state(mock_api, plugin):
     for patched_event in patched_events:
         assert {'_systemAddress', '_systemName', '_systemCoordinates', '_marketId', '_stationName', '_shipId'} \
             .issubset(set(patched_event.keys()))
+
+
+def test_process_buffered_events_retry_on_connection_error(mock_api, plugin, state):
+    events = [
+        hypothesis_strategies.TestEvent().example()
+    ]
+
+    plugin.gamestate = mock.Mock()
+    plugin.gamestate.state = state
+    mock_api.journal_event.side_effect = requests.exceptions.ConnectionError
+
+    plugin.process_buffered_events(events)
+
+    assert mock_api.journal_event.call_count == 2
+
+
+def test_process_buffered_events_chunked(mock_api, plugin, state):
+    event_strategy = hypothesis_strategies.TestEvent()
+    events = list(event_strategy.example() for i in range(50))
+    plugin.gamestate = mock.Mock()
+    plugin.gamestate.state = state
+
+    plugin.process_buffered_events(events)
+
+    assert mock_api.journal_event.call_count == 5

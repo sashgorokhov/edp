@@ -111,3 +111,15 @@ def test_is_version_newer(v1, v2, newer):
 ])
 def test_space_distance(p1, p2, result):
     assert round(utils.space_distance(p1, p2), 3)
+
+
+@pytest.mark.parametrize(('seq', 'size', 'result'), [
+    ((1, 2, 3), 1, [(1,), (2,), (3,)]),
+    ((1, 2, 3), 2, [(1, 2), (3,)]),
+    ((1, 2, 3), 3, [(1, 2, 3)]),
+    ((1, 2, 3), 4, [(1, 2, 3)]),
+    ((1, 2, 3, 4, 5, 6), 2, [(1, 2), (3, 4), (5, 6)]),
+    ((1, 2, 3, 4, 5, 6, 7), 2, [(1, 2), (3, 4), (5, 6), (7,)]),
+])
+def test_chunked(seq, size, result):
+    assert list(utils.chunked(seq, size)) == result
