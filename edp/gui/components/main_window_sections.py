@@ -35,7 +35,7 @@ class MainWindowSectionsView:
         for section in SECTIONS.order:
             self._section_separators[section] = self.window.menuView.addSeparator()
 
-    def add_component(self, component_cls: Type[BaseMainWindowSection], section=SECTIONS.MAIN):
+    def add_component(self, component_cls: Type[BaseMainWindowSection], section=SECTIONS.MAIN, enabled=False):
         """Add section component to section"""
         if component_cls.name is None:
             logger.warning(f'Section component {component_cls} does not define `name` attribute')
@@ -47,7 +47,7 @@ class MainWindowSectionsView:
             return
 
         component.name = component.name or component_cls.__name__
-        self._settings.setdefault(component.name, True)
+        self._settings.setdefault(component.name, enabled)
 
         action = QtWidgets.QAction(self.window)
         action.setCheckable(True)

@@ -28,7 +28,7 @@ class MainWindow(Ui_MainWindow, QtWidgets.QMainWindow):
         self._app = QtWidgets.QApplication.instance()
 
         self.sections_view = main_window_sections.MainWindowSectionsView(self)
-        self.sections_view.add_component(state_overview.StateOverviewComponent)
+        self.sections_view.add_component(state_overview.StateOverviewComponent, enabled=True)
         self.sections_view.add_component(simple_events_list.SimpleEventsListComponent)
         self.sections_view.add_component(materials_collected.MaterialsCollectedComponent)
 
@@ -38,8 +38,6 @@ class MainWindow(Ui_MainWindow, QtWidgets.QMainWindow):
         action.setText('Settings')
         action.triggered.connect(self.settings_window.show)
         self.menubar.addAction(action)
-
-        self._app.aboutToQuit.connect(self.close)
 
         layout: QtWidgets.QVBoxLayout = self.layout()
         layout.setContentsMargins(0, 0, 0, 0)
