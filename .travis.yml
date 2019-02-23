@@ -2,6 +2,9 @@ language: python
 python: "3.6"
 cache: pip
 
+env:
+  - QT_QPA_PLATFORM=offscreen
+
 stages:
   - test
   - lint
@@ -10,7 +13,7 @@ install:
   - pip install -r requirements-test.txt -c constraints.txt codecov
 
 script:
-  - pytest --color=auto --cov=edp --cov-report=term-missing tests/
+  - pytest -svv --color=auto --cov=edp --cov-report=term-missing tests/
   - mypy edp/
   - pylint -j 0 --persistent=n edp/
 
