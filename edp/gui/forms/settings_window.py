@@ -25,6 +25,7 @@ class BaseTab(QtWidgets.QWidget):
         checkbox.setText(label)
         checkbox.stateChanged.connect(lambda state: settings.__setattr__(field, QtCore.Qt.Checked == state))
         checkbox.setChecked(getattr(settings, field))
+        checkbox.setObjectName(f'{field}_checkbox')
         layout.addWidget(checkbox)
         layout.addStretch(1)
         return layout
@@ -39,6 +40,7 @@ class BaseTab(QtWidgets.QWidget):
         line_edit = QtWidgets.QLineEdit(str(getattr(settings, field) or ''))
         line_edit.textChanged.connect(lambda text: settings.__setattr__(field, settype(text)))
         line_edit.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed))
+        line_edit.setObjectName(f'{field}_line_edit')
         layout.addWidget(line_edit)
         layout.addSpacerItem(
             QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum))

@@ -4,6 +4,7 @@ import tempfile
 from unittest import mock
 
 import pytest
+from PyQt5 import QtWidgets
 
 from edp import settings
 
@@ -40,9 +41,21 @@ def patch_settings_dir(tempdir):
 
 
 @pytest.fixture(autouse=True)
-def clear_settings_instances(tempdir):
+def clear_settings_instances(patch_settings_dir, tempdir):
     yield
     for key, value in settings.BaseSettings.__setting_per_name__.items():
         value._shelve.close()
 
     settings.BaseSettings.__setting_per_name__.clear()
+
+
+@pytest.fixture('session', autouse=True)
+def qapp():
+    app = QtWidgets.QApplication([])
+    yield app
+    app.quit()
+
+
+@pytest.fixture()
+def process_events(qapp):
+    return lambda: qapp.processEvents()

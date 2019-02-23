@@ -6,8 +6,7 @@ from hypothesis import given, strategies as st, example, settings
 
 from edp import journal, utils
 from edp.contrib import eddn, gamestate
-from edp.utils.hypothesis_strategies import FSDJumpEvent, LocationEvent, random_keys_removed
-from edp.utils.testutils import hypothesis_parametrize
+from edp.utils.hypothesis_strategies import FSDJumpEvent, LocationEvent, random_keys_removed, hypothesis_parametrize
 
 
 def test_eddn_schema_to_dict():

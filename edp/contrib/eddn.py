@@ -182,18 +182,22 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
         if 'StationEconomies' in optional:
             optional['StationEconomies'] = [strip_localized(d) for d in optional['StationEconomies']]
 
+        star_system = event.data.get('StarSystem', None) or state.location.system
+        star_pos = event.data.get('StarPos', None) or state.location.pos
+        system_address = event.data.get('SystemAddress', None) or state.location.address
+
+        if not star_system or not star_pos or not system_address:
+            raise ValueError('Got falsy StarPos or StarSystem or SystemAddress')
+
         message = JournalMessageSchema(
             timestamp=utils.to_ed_timestamp(event.timestamp),
             event=event.name,
-            StarSystem=event.data.get('StarSystem', None) or state.location.system,
-            StarPos=event.data.get('StarPos', None) or state.location.pos,
-            SystemAddress=event.data.get('SystemAddress', None) or state.location.address,
+            StarSystem=star_system,
+            StarPos=star_pos,
+            SystemAddress=system_address,
             Factions=[filter_faction(f) for f in event.data.get('Factions', [])],
             optional=optional
         )
-
-        if not message.StarPos or not message.StarSystem or not message.SystemAddress:
-            raise ValueError('Got falsy StarPos or StarSystem or SystemAddress')
 
         payload_dataclass = EDDNSchema(
             header=SchemaHeader(

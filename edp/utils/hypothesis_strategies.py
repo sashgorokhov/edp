@@ -5,8 +5,9 @@ For god sake, do not import this anywhere outside tests!
 """
 import datetime
 import json
-from typing import Callable, Any
+from typing import Callable, Any, Union, Tuple
 
+import pytest
 from hypothesis import strategies as st
 from hypothesis.searchstrategy import SearchStrategy
 
@@ -149,3 +150,7 @@ def random_keys_removed(strategy: SearchStrategy[journal.Event]) -> SearchStrate
                           **utils.drop_keys(event.data, 'event', 'timestamp', *draw(drop_keys)))
 
     return func()
+
+
+def hypothesis_parametrize(argspec: Union[Tuple[str], str], strategy: SearchStrategy, max_examples=10):
+    return pytest.mark.parametrize(argspec, (strategy.example() for i in range(max_examples)))

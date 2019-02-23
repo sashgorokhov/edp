@@ -97,7 +97,7 @@ class CapiSettings(BaseSettings):
     expires_in: Optional[datetime.datetime] = None
 
 
-class CapiAuthWindow(QtWebEngineWidgets.QWebEngineView):
+class CapiAuthWindow(QtCore.QObject):
     """
     Customized QWebEngineView that loads authorization url and waits for REDIRECT_URL
 
@@ -109,14 +109,15 @@ class CapiAuthWindow(QtWebEngineWidgets.QWebEngineView):
 
     def __init__(self):
         super(CapiAuthWindow, self).__init__()
-        self.setWindowTitle(config.APPNAME_FRIENDLY + 'companion API login window')
-        self.urlChanged.connect(self.on_url_changed)
+        self._browser = QtWebEngineWidgets.QWebEngineView()
+        self._browser.setWindowTitle(config.APPNAME_FRIENDLY + 'companion API login window')
+        self._browser.urlChanged.connect(self.on_url_changed)
 
     def show(self, auth_url: URL):
         """Show browser window with loaded `auth_url`"""
         logger.info(f'Loading auth url: {auth_url}')
-        self.load(QtCore.QUrl(str(auth_url)))
-        super(CapiAuthWindow, self).show()
+        self._browser.load(QtCore.QUrl(str(auth_url)))
+        self._browser.show()
 
     @catcherr
     def on_url_changed(self, url: QtCore.QUrl):
@@ -125,6 +126,10 @@ class CapiAuthWindow(QtWebEngineWidgets.QWebEngineView):
         if url.toString().startswith(self.REDIRECT_URL):
             self.on_redirect_url.emit(URL(url.toString()))
             self.close()
+
+    def close(self):
+        """Close window"""
+        self._browser.close()
 
 
 class CapiSettingsTabWidget(VLayoutTab):
@@ -161,6 +166,7 @@ class CapiSettingsTabWidget(VLayoutTab):
 
         layout = QtWidgets.QHBoxLayout()
         button = QtWidgets.QPushButton('Login')
+        button.setObjectName('login_button')
         button.clicked.connect(lambda *args, **kwargs: catcherr(self._manager.show_login_window)())
         layout.addWidget(button)
         self.update_status_label()
