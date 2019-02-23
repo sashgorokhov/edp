@@ -8,7 +8,6 @@ import json
 from typing import Callable, Any
 
 from hypothesis import strategies as st
-from hypothesis._strategies import composite, CompositeStrategy
 from hypothesis.searchstrategy import SearchStrategy
 
 from edp import journal, utils
@@ -32,7 +31,8 @@ def make_event(_name, timestamp=None, **kwargs) -> journal.Event:
 
 def event_strategy(event_name, **fields) -> Callable[..., SearchStrategy[Any]]:
     """Build composite strategy that generates Events"""
-    @composite
+
+    @st.composite
     def func(draw, **kwargs):
         kwargs.setdefault('timestamp', st.datetimes())
         data = fields.copy()
@@ -50,16 +50,16 @@ def event_strategy(event_name, **fields) -> Callable[..., SearchStrategy[Any]]:
 CommanderEvent = event_strategy('Commander', Name=str, FID=str)
 
 
-@composite
-def material_strategy(draw, Name=st.text(), Count=st.integers()):  # noqa
-    return {'Name': draw(Name), 'Count': draw(Count)}
+# noinspection PyPep8Naming
+def material(Name=st.text(), Count=st.integers()):  # noqa
+    return st.fixed_dictionaries({'Name': Name, 'Count': Count})
 
 
-valid_material = material_strategy(Name=st.text(min_size=1), Count=st.integers(min_value=1))
+valid_material = material(Name=st.text(min_size=1), Count=st.integers(min_value=1))
 
 
-@composite
-def MaterialsEvent(draw, material=material_strategy(), Raw=sentinel, Manufactured=sentinel, Encoded=sentinel):  # noqa
+# noinspection PyPep8Naming
+def MaterialsEvent(material=material(), Raw=sentinel, Manufactured=sentinel, Encoded=sentinel):  # noqa
     kwargs = {}
     if Raw is sentinel:
         Raw = st.lists(material)
@@ -75,7 +75,7 @@ def MaterialsEvent(draw, material=material_strategy(), Raw=sentinel, Manufacture
     if Encoded is not None:
         kwargs['Encoded'] = Encoded
 
-    return draw(event_strategy('Materials', **kwargs)())
+    return event_strategy('Materials', **kwargs)
 
 
 TestEvent = event_strategy('Test')
@@ -83,3 +83,69 @@ TestEvent = event_strategy('Test')
 FileheaderEvent = event_strategy('Fileheader', part=int, language=str,
                                  gameversion=st.none() | st.integers() | st.text(),
                                  build=st.none() | st.integers() | st.text())
+
+
+# noinspection PyPep8Naming
+def Faction(Name=st.text(), FactionState=st.text(), Government=st.text(), Influence=st.floats()):  # noqa
+    state = st.fixed_dictionaries({'State': st.text(), 'Trend': st.integers()})
+    return st.fixed_dictionaries({
+        'Name': Name,
+        'FactionState': FactionState,
+        'Government': Government,
+        'Influence': Influence,
+        'PendingStates': st.lists(state),
+        'RecovingStates': st.lists(state),
+    })
+
+
+FSDJumpEvent = event_strategy(
+    event_name='FSDJump',
+    StarSystem=st.text(),
+    SystemAddress=st.integers(),
+    StarPos=st.tuples(st.floats(), st.floats(), st.floats()),
+    Body=st.text(),
+    FuelUsed=st.floats(),
+    JumpDist=st.floats(),
+    BoostUsed=st.booleans(),
+    SystemFaction=st.text(),
+    FactionState=st.text(),
+    SystemAllegiance=st.text(),
+    SystemEconomy=st.text(),
+    SystemSecondEconomy=st.text(),
+    SystemGovernment=st.text(),
+    SystemSecurity=st.text(),
+    Population=st.integers(),
+    Wanted=st.booleans(),
+    Factions=st.lists(Faction())
+)
+
+
+LocationEvent = event_strategy(
+    event_name='Location',
+    Docked=st.booleans(),
+    StarSystem=st.text(),
+    SystemAddress=st.integers(),
+    StarPos=st.tuples(st.floats(), st.floats(), st.floats()),
+    Body=st.text(),
+    SystemFaction=st.text(),
+    FactionState=st.text(),
+    SystemAllegiance=st.text(),
+    SystemEconomy=st.text(),
+    SystemSecondEconomy=st.text(),
+    SystemGovernment=st.text(),
+    SystemSecurity=st.text(),
+    Wanted=st.booleans(),
+    Factions=st.lists(Faction()),
+)
+
+
+def random_keys_removed(strategy: SearchStrategy[journal.Event]) -> SearchStrategy[journal.Event]:
+    keys = tuple(utils.drop_keys(strategy.example().data, 'timestamp', 'event').keys())
+
+    @st.composite
+    def func(draw, drop_keys=st.lists(st.sampled_from(keys), unique=True)):
+        event = draw(strategy)
+        return make_event(event.name, event.timestamp,
+                          **utils.drop_keys(event.data, 'event', 'timestamp', *draw(drop_keys)))
+
+    return func()

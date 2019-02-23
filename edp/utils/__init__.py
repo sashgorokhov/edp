@@ -82,6 +82,11 @@ def has_keys(d: dict, *keys: str) -> bool:
     return set(keys).issubset(set(d.keys()))
 
 
+def drop_keys(d: dict, *keys: str) -> dict:
+    """Return new dict without `keys`"""
+    return {k: v for k, v in d.items() if k not in keys}
+
+
 def map_keys(d: Dict[str, Any], strict: bool = False, **key_map: str) -> Dict[str, Any]:
     """
     Return new dict where all `d` keys found in `key_map` are renamed to corresponding `key_map` value

@@ -142,6 +142,7 @@ class EDDNSettingsTabWidget(VLayoutTab):  # pragma: no cover
 
 class EDDNPlugin(BufferedEventsMixin, BasePlugin):
     """EDDN plugin"""
+
     def __init__(self):
         super(EDDNPlugin, self).__init__()
 
@@ -167,28 +168,32 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
 
     # pylint: disable=no-self-use
     def process_event(self, event: journal.Event, state: GameStateData) -> EDDNSchema:
-        """Process journal events into journal message"""
+        """
+        Process journal events into journal message
+        """
         strip_localized = lambda d: utils.dict_subset(d, *(k for k in d.keys() if not k.endswith('_Localised')))
-        drop_keys = lambda d, *keys: {k: v for k, v in d.items() if k not in keys}
-        filter_faction = lambda d: strip_localized(drop_keys(
+        filter_faction = lambda d: strip_localized(utils.drop_keys(
             d, 'HappiestSystem', 'HomeSystem', 'MyReputation', 'SquadronFaction'
         ))
 
-        optional = drop_keys(event.data, "ActiveFine", "CockpitBreach", "BoostUsed",
-                             "FuelLevel", "FuelUsed", "JumpDist", "Latitude", "Longitude", "Wanted")
+        optional = utils.drop_keys(event.data, "ActiveFine", "CockpitBreach", "BoostUsed",
+                                   "FuelLevel", "FuelUsed", "JumpDist", "Latitude", "Longitude", "Wanted")
         optional = strip_localized(optional)
         if 'StationEconomies' in optional:
             optional['StationEconomies'] = [strip_localized(d) for d in optional['StationEconomies']]
 
         message = JournalMessageSchema(
-            timestamp=event.timestamp.isoformat(timespec='seconds') + 'Z',
+            timestamp=utils.to_ed_timestamp(event.timestamp),
             event=event.name,
-            StarSystem=event.data.get('StarSystem', state.location.system),
-            StarPos=event.data.get('StarPos', state.location.pos),
-            SystemAddress=event.data.get('SystemAddress', state.location.address),
+            StarSystem=event.data.get('StarSystem', None) or state.location.system,
+            StarPos=event.data.get('StarPos', None) or state.location.pos,
+            SystemAddress=event.data.get('SystemAddress', None) or state.location.address,
             Factions=[filter_faction(f) for f in event.data.get('Factions', [])],
             optional=optional
         )
+
+        if not message.StarPos or not message.StarSystem or not message.SystemAddress:
+            raise ValueError('Got falsy StarPos or StarSystem or SystemAddress')
 
         payload_dataclass = EDDNSchema(
             header=SchemaHeader(
@@ -205,9 +210,8 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
         logger.debug(f'Sending message to EDDN: {payload["$schemaRef"]}')
         response = self._session.post('https://eddn.edcd.io:4430/upload/', json=payload)
         if response.status_code >= 400:
-            logger.error(f'Error sending message to EDDN, status code is: {response.status_code}')
-            logger.error(f'Response text: {response.text}')
-            logger.error(f'Payload: {payload}')
+            logger.error(f'Error sending message to EDDN, status code is {response.status_code}: '
+                         f'{response.text} :: {payload}')
         return response
 
     @plugins.bind_signal(capi.shipyard_info_signal)

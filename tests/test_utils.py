@@ -123,3 +123,15 @@ def test_space_distance(p1, p2, result):
 ])
 def test_chunked(seq, size, result):
     assert list(utils.chunked(seq, size)) == result
+
+
+@pytest.mark.parametrize(('d', 'keys', 'result'), [
+    ({}, tuple(), {}),
+    ({1: 2}, tuple(), {1: 2}),
+    ({1: 2}, (1,), {}),
+    ({1: 2}, (2,), {1: 2}),
+    ({1: 2, 3: 4}, (1,), {3: 4}),
+    ({1: 2, 3: 4}, (1, 5), {3: 4}),
+])
+def test_drop_keys(d, keys, result):
+    assert utils.drop_keys(d, *keys) == result

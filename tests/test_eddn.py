@@ -2,9 +2,12 @@ import datetime
 from unittest import mock
 
 import pytest
+from hypothesis import given, strategies as st, example, settings
 
-from edp import journal
-from edp.contrib import eddn
+from edp import journal, utils
+from edp.contrib import eddn, gamestate
+from edp.utils.hypothesis_strategies import FSDJumpEvent, LocationEvent, random_keys_removed
+from edp.utils.testutils import hypothesis_parametrize
 
 
 def test_eddn_schema_to_dict():
@@ -62,33 +65,30 @@ def test_event_filtered(eddn_plugin, event_name, filtered):
         assert len(eddn_plugin._events_buffer) == 1
 
 
-def test_process_buffered_events(eddn_plugin):
-    event = journal.Event(datetime.datetime.now(), 'FSDJump', {
-        'event': 'FSDJump',
-        'StarSystem': 'test',
-        'SystemAddress': 1,
-        'StarPos': [0.0, 0.0, 0.0],
-        'Body': 'test',
-        'FuelUsed': 1.0,
-        'JumpDist': 124.0,
-        'SystemFaction': 'test',
-        'SystemAllegiance': 'test',
-        'SystemEconomy': 'test',
-        'Factions': [
-            {'Name': 'test'},
-            {'Name': 'test2', 'FactionState': 'None', 'Government': 'test', 'Influence': 'test'},
-            {'Name': 'test3', 'FactionState': 'None', 'Government': 'test', 'Influence': 'test', 'Allegiance': 'test'}
-        ]
-    }, '{}')
-
+@hypothesis_parametrize('event', FSDJumpEvent(), max_examples=5)
+def test_process_buffered_events(eddn_plugin, event):
     with mock.patch('inject.instance'):
         eddn_plugin.process_buffered_events([event])
 
-    eddn_plugin._session.post.assert_called_once()
-    payload = eddn_plugin._session.post.call_args[1]['json']
+    eddn_plugin._session.post.assert_called()
 
-    assert 'FuelUsed' not in payload['message']
-    assert 'JumpDist' not in payload['message']
-    assert 'SystemAllegiance' in payload['message']
-    assert 'Factions' in payload['message']
-    assert len(payload['message']['Factions']) == 3
+
+@hypothesis_parametrize('event', st.one_of(
+        random_keys_removed(FSDJumpEvent()) | FSDJumpEvent(),
+        random_keys_removed(LocationEvent()) | LocationEvent()))
+@pytest.mark.parametrize('commander_name', [None, 'foo'])
+def test_process_event(eddn_plugin, event, commander_name):
+    state = gamestate.GameStateData()
+    state.commander.name = commander_name
+    state.location.system = 'test'
+    state.location.pos = [0.0, 0.0, 0.0]
+    state.location.address = 1
+
+    schema = eddn_plugin.process_event(event, state)
+    assert schema.header.uploaderID is not None
+    assert schema.schemaRef is not None
+    assert isinstance(schema.message, eddn.JournalMessageSchema)
+    assert schema.message.timestamp == utils.to_ed_timestamp(event.timestamp)
+    assert schema.message.StarSystem
+    assert schema.message.StarPos
+    assert schema.message.SystemAddress
