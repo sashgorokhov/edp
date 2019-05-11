@@ -99,3 +99,14 @@ def test_process_buffered_events_error_sending_api(inara_plugin, mock_api, mock_
 
     mock_callback.assert_called_once_with(event=event)
     mock_api.assert_called_once()
+
+
+@pytest.mark.parametrize(('delta', 'result'), [
+    (datetime.timedelta(days=5), True),
+    (datetime.timedelta(days=10), True),
+    (datetime.timedelta(days=30), False),
+    (datetime.timedelta(days=31), False),
+])
+def test_old_event_not_processed(delta, result, inara_plugin, event):
+    event = event._replace(timestamp=datetime.datetime.now() - delta)
+    assert inara_plugin.filter_event(event) == result

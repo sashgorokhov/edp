@@ -3,6 +3,7 @@ Inara integration plugin
 
 Sends journal events to inara
 """
+import datetime
 import functools
 import itertools
 import logging
@@ -179,6 +180,10 @@ class InaraPlugin(BufferedEventsMixin, plugins.BasePlugin):
                               'EngineerProgress', 'Loadout', 'Location'}:
                 filtered_events.append(event)
         self.process_buffered_events(filtered_events)
+
+    def filter_event(self, event: journal.Event):
+        """Do not process very old events"""
+        return event.timestamp > datetime.datetime.now() - datetime.timedelta(days=29)
 
     # pylint: disable=no-self-use
     def process_buffered_events(self, events: List[journal.Event]):
