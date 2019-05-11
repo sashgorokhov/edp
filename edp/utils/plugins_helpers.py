@@ -128,8 +128,7 @@ class RoutingSwitchRegistry(Generic[CT, RT]):
             try:
                 yield callback(**kwargs)
             except:
-                logger.exception(f'Error executing callback for key {routing_key}: {callback}')
-                logger.error(kwargs)
+                logger.exception(f'Error executing callback for key {routing_key}: {callback}: {kwargs}')
 
     def execute_silently(self, routing_key: str, **kwargs) -> Iterator[RT]:
         """
