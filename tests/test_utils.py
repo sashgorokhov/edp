@@ -135,3 +135,21 @@ def test_chunked(seq, size, result):
 ])
 def test_drop_keys(d, keys, result):
     assert utils.drop_keys(d, *keys) == result
+
+
+@pytest.mark.parametrize(('material_category', 'category'), [
+    ('Raw', 'raw'),
+    ('Encoded', 'encoded'),
+    ('Manufactured', 'manufactured'),
+    ('raw', 'raw'),
+    ('encoded', 'encoded'),
+    ('manufactured', 'manufactured'),
+    ('$MICRORESOURCE_CATEGORY_Manufactured', 'manufactured'),
+    ('$MICRORESOURCE_CATEGORY_Encoded', 'encoded'),
+    ('$MICRORESOURCE_CATEGORY_Raw', 'raw'),
+    ('$MICRORESOURCE_CATEGORY_Manufactured;', 'manufactured'),
+    ('$MICRORESOURCE_CATEGORY_Encoded;', 'encoded'),
+    ('$MICRORESOURCE_CATEGORY_Raw;', 'raw'),
+])
+def test_infer_category(material_category, category):
+    assert utils.infer_category(material_category) == category

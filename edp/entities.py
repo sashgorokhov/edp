@@ -6,9 +6,9 @@ from operator import attrgetter, methodcaller
 from typing import Dict, Optional, Tuple, List
 
 import dataclasses
-from dpcontracts import PreconditionError
 
 from edp.contracts import PositiveInt, NotEmptyStr, require_contract
+from edp.utils import infer_category
 
 
 class BaseEntity:
@@ -105,17 +105,6 @@ class MaterialStorage:
     """
     Represents materials storage
     """
-    _category_map = {
-        'Raw': 'raw',
-        'Encoded': 'encoded',
-        'Manufactured': 'manufactured',
-        'raw': 'raw',
-        'encoded': 'encoded',
-        'manufactured': 'manufactured',
-        '$MICRORESOURCE_CATEGORY_Manufactured': 'manufactured',
-        '$MICRORESOURCE_CATEGORY_Encoded': 'encoded',
-        '$MICRORESOURCE_CATEGORY_Raw': 'raw',
-    }
 
     def __init__(self):
         super(MaterialStorage, self).__init__()
@@ -125,9 +114,8 @@ class MaterialStorage:
     @require_contract('category', NotEmptyStr)
     def __getitem__(self, category: str) -> Dict[str, int]:
         """Return materials in category"""
-        if category not in self._category_map:
-            raise PreconditionError(f'`category` must be one of {tuple(self._category_map.keys())}')
-        return self._data[self._category_map[category]]
+        category = infer_category(category)
+        return self._data[category]
 
     @require_contract('name', NotEmptyStr)
     @require_contract('count', PositiveInt)

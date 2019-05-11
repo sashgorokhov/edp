@@ -107,7 +107,7 @@ def test_material_sum_different_materials():
 
 @given(name=st.text(min_size=1),
        count=st.integers(min_value=1),
-       category=st.sampled_from(tuple(entities.MaterialStorage._category_map.keys())))
+       category=st.sampled_from(('Raw', 'manufactured', '$MICRORESOURCE_CATEGORY_Encoded')))
 def test_material_storage_add_material(name: str, count: int, category: str):
     storage = entities.MaterialStorage()
     assert storage.add_material(name=name, count=count, category=category) == count
@@ -115,7 +115,7 @@ def test_material_storage_add_material(name: str, count: int, category: str):
 
 @given(name=st.none() | st.text(max_size=0) | st.integers(),
        count=st.none() | st.integers(max_value=0) | st.text(),
-       category=st.none() | st.integers() | st.sampled_from(tuple(entities.MaterialStorage._category_map.keys())))
+       category=st.none() | st.integers() | st.sampled_from(('Raw', 'manufactured', '$MICRORESOURCE_CATEGORY_Encoded')))
 def test_material_storage_add_material_failed_preconditions(name: str, count: int, category: str):
     storage = entities.MaterialStorage()
     with pytest.raises(PreconditionError):
@@ -123,7 +123,7 @@ def test_material_storage_add_material_failed_preconditions(name: str, count: in
 
 
 @given(name=st.text(min_size=1),
-       category=st.sampled_from(tuple(entities.MaterialStorage._category_map.keys())))
+       category=st.sampled_from(('Raw', 'manufactured', '$MICRORESOURCE_CATEGORY_Encoded')))
 @pytest.mark.parametrize(('existing', 'remove', 'result'), [
     (5, 1, 4),
     (5, 5, 0),

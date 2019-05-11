@@ -138,3 +138,19 @@ def version_bits(version: str) -> Tuple[int, int, int]:
 def is_version_newer(v1: str, v2: str) -> bool:
     """Check if v1 version string is newer than v2 version string"""
     return version_bits(v1) > version_bits(v2)
+
+
+def infer_category(material_category: str) -> str:
+    """Reduce different possible material category journal values.
+
+    For example `Manufactured`, `$MICRORESOURCE_CATEGORY_Manufactured` will be changed to `manufactured`.
+
+    :raises ValueError: If cannot find known category in `material_category`
+    """
+    material_category = (material_category or '').lower()
+    categories = ('raw', 'encoded', 'manufactured')
+
+    for category in categories:
+        if category in material_category:
+            return category
+    raise ValueError(f'Material category "{material_category}" is not something like {categories}')
