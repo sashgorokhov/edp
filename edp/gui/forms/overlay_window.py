@@ -261,7 +261,12 @@ class GameOverlayWindow(JournalEventHandlerMixin, Ui_Form, QtWidgets.QWidget):
     def on_journal_event(self, event: journal.Event):
         """Handle journal events"""
         if event.name == 'Status':
-            gui_focus = GuiFocus(event.data.get('GuiFocus', 0))
+            try:
+                gui_focus = GuiFocus(event.data.get('GuiFocus', 0))
+            except ValueError:
+                logger.error(f'Got invalid GuiFocus value in event: {event.raw}')
+                gui_focus = GuiFocus.NoFocus
+
             if gui_focus is not GuiFocus.NoFocus:
                 self.setWindowOpacity(OPACITY_ALMOST_NONE)
             else:
