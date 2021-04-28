@@ -264,7 +264,7 @@ class GameOverlayWindow(JournalEventHandlerMixin, Ui_Form, QtWidgets.QWidget):
             try:
                 gui_focus = GuiFocus(event.data.get('GuiFocus', 0))
             except ValueError:
-                logger.error(f'Got invalid GuiFocus value in event: {event.raw}')
+                logger.debug(f'Got invalid GuiFocus value in event: {event.raw}')
                 gui_focus = GuiFocus.NoFocus
 
             if gui_focus is not GuiFocus.NoFocus:
