@@ -21,7 +21,7 @@ import logging
 import operator
 import os
 import threading
-from typing import Union, Optional, NamedTuple, Iterable
+from typing import Union, Optional, NamedTuple
 
 import requests
 from PyQt5 import QtWebEngineWidgets, QtCore, QtWidgets
@@ -182,6 +182,7 @@ class CapiState:
 
     Just a simple FSM implementation.
     """
+
     class STATES:
         """Define states"""
         LOGIN_REQUIRED = 0
