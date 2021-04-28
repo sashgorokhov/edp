@@ -18,9 +18,10 @@ import datetime
 import hashlib
 import json
 import logging
+import operator
 import os
 import threading
-from typing import Union, Optional, NamedTuple
+from typing import Union, Optional, NamedTuple, Iterable
 
 import requests
 from PyQt5 import QtWebEngineWidgets, QtCore, QtWidgets
@@ -452,6 +453,9 @@ class CapiManager:
         return self.do_query('communitygoals')
 
 
+lower_all = lambda items: map(operator.methodcaller('lower'), items)
+
+
 class CapiPlugin(plugins.BasePlugin):
     """CAPI connection plugin"""
     friendly_name = 'Companion API'
@@ -482,14 +486,14 @@ class CapiPlugin(plugins.BasePlugin):
 
         try:
             if event.name == 'Docked':
-                services = event.data.get('StationServices', [])
-                if 'Commodities' in services:
+                services = lower_all(event.data.get('StationServices', []))
+                if 'commodities' in services:
                     data = self._manager.get_market()
                     if event.data.get('MarketID', None) == data.get('id', None):
                         market_info_signal.emit(data=data)
                     else:
                         logger.warning('MarketID of docked event and capi does not match')
-                if 'Shipyard' in services:
+                if 'shipyard' in services:
                     data = self._manager.get_shipyard()
                     if event.data.get('MarketID', object()) == data.get('id', object()):
                         shipyard_info_signal.emit(data=data)
