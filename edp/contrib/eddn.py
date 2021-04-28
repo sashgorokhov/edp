@@ -242,7 +242,7 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
             stationName=gamestate.location.station.name,
             marketId=gamestate.location.station.market,
             horizons=gamestate.horizons,
-            timestamp=datetime.datetime.now().isoformat(timespec='seconds') + 'Z',
+            timestamp=datetime.datetime.utcnow().isoformat(timespec='seconds') + 'Z',
             modules=modules,
         )
 
@@ -283,7 +283,7 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
             stationName=gamestate.location.station.name,
             marketId=gamestate.location.station.market,
             horizons=gamestate.horizons,
-            timestamp=datetime.datetime.now().isoformat(timespec='seconds') + 'Z',
+            timestamp=datetime.datetime.utcnow().isoformat(timespec='seconds') + 'Z',
             ships=ships,
         )
 
@@ -346,7 +346,7 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
             stationName=gamestate.location.station.name,
             marketId=gamestate.location.station.market,
             horizons=gamestate.horizons,
-            timestamp=datetime.datetime.now().isoformat(timespec='seconds') + 'Z',
+            timestamp=datetime.datetime.utcnow().isoformat(timespec='seconds') + 'Z',
             commodities=commodities,
             economies=economies,
             optional=optional
