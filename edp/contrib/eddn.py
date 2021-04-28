@@ -278,6 +278,11 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
             if name:
                 ships.append(name)
 
+        if not ships:
+            logger.error('No ships were parsed from cApi data for shipyard v2 EDDN schema')
+            logger.debug(data)
+            return
+
         message = ShipyardMessageSchema(
             systemName=gamestate.location.system,
             stationName=gamestate.location.station.name,
