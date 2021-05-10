@@ -98,6 +98,7 @@ def main():
             try:
                 app.exec_()
             finally:
+                logger.info('App finished, exiting signal emit')
                 signals.exiting.emit_eager()
 
 

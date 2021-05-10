@@ -66,6 +66,7 @@ class BufferedEventsMixin:
         """
         Flush buffer on application exit
         """
+        logger.debug(f'{self.__class__.__name__} exit callback')
         self.buffer_flush_callback()
 
 
