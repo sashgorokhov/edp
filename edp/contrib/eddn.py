@@ -22,7 +22,7 @@ import requests
 
 from edp import config, journal, utils, plugins
 from edp.contrib import capi
-from edp.contrib.gamestate import get_gamestate, GameStateData
+from edp.contrib.gamestate import get_gamestate, GameStateData, game_state_set_signal
 from edp.gui.forms.settings_window import VLayoutTab
 from edp.plugins import BasePlugin
 from edp.settings import BaseSettings
@@ -149,12 +149,18 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
         self.settings = EDDNSettings.get_insance()
         self._session = requests.Session()
         self._session.headers['User-Agent'] = config.USERAGENT
+        self._starpos_db: Dict[int, Tuple[float, float, float]] = {}  # SystemAddress to StarPos
 
     def is_enalbed(self):
         return self.settings.enabled
 
     def filter_event(self, event: journal.Event) -> bool:
         return event.name in {'Docked', 'FSDJump', 'Scan', 'Location'}
+
+    @plugins.bind_signal(game_state_set_signal)
+    def bootstrap_starpos_db(self, state: GameStateData):
+        if state.location.pos:
+            self._starpos_db[state.location.address] = state.location.pos
 
     def process_buffered_events(self, events: List[journal.Event]):
         gamestate = get_gamestate()
@@ -182,9 +188,12 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
         if 'StationEconomies' in optional:
             optional['StationEconomies'] = [strip_localized(d) for d in optional['StationEconomies']]
 
+        if utils.has_keys(event.data, 'StarPos', 'SystemAddress'):
+            self._starpos_db[event.data['SystemAddress']] = event.data['StarPos']
+
         star_system = event.data.get('StarSystem', None) or state.location.system
-        star_pos = event.data.get('StarPos', None) or state.location.pos
         system_address = event.data.get('SystemAddress', None) or state.location.address
+        star_pos = event.data.get('StarPos', None) or self._starpos_db.get(system_address, None) or state.location.pos
 
         if not star_system or not star_pos or not system_address:
             raise ValueError('Got falsy StarPos or StarSystem or SystemAddress')
