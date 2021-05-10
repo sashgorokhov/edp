@@ -50,7 +50,9 @@ class GuiFocus(enum.Enum):
     StationServices = 5
     GalaxyMap = 6
     SystemMap = 7
-
+    OrreryMap = 8
+    FssScanner = 9
+    SurfaceScanner = 10
 
 WindowHandler = NewType('WindowHandler', int)
 
