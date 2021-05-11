@@ -193,7 +193,8 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
 
         star_system = event.data.get('StarSystem', None) or state.location.system
         system_address = event.data.get('SystemAddress', None) or state.location.address
-        star_pos = event.data.get('StarPos', None) or self._starpos_db.get(system_address, None) or state.location.pos
+        star_pos = event.data.get('StarPos', None) or self._starpos_db.get(system_address or 0, None) \
+                   or state.location.pos
 
         if not star_system or not star_pos or not system_address:
             raise ValueError('Got falsy StarPos or StarSystem or SystemAddress')
