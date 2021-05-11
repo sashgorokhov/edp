@@ -6,100 +6,53 @@
 <?define ProductExecutable = "elite_dangerous_platform.exe"?>
 <?define ProductUpgradeCode = "367ac562-cf7a-47ea-b036-c8315f61b424"?>
 <?define ProductHKCUPath = "Software\Microsoft\$(var.ProductName)"?>
-
-
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
-    <Product Id="*"
-             UpgradeCode="$(var.ProductUpgradeCode)"
-             Name="$(var.ProductName)"
-             Version='$(var.Version)'
-             Manufacturer="$(var.ProductManufacturer)"
-             Language="1033"
-    >
-
-        <Package Id="*"
-                 InstallerVersion="200"
-                 Compressed="yes"
-                 Manufacturer="$(var.ProductManufacturer)"
-                 InstallScope="perUser"
-                 Keywords="Installer"
-                 Description="Install $(var.ProductName)"
-        />
-
-        <MajorUpgrade AllowDowngrades="yes" AllowSameVersionUpgrades="no"/>
-
-        <Media Id="1" Cabinet="product.cab" EmbedCab="yes"/>
-
-        <Icon Id="app_icon" SourceFile="$(var.AssetsDir)\app_icon.ico"/>
+    <Product Id="*" UpgradeCode="$(var.ProductUpgradeCode)" Name="$(var.ProductName)" Version="$(var.Version)" Manufacturer="$(var.ProductManufacturer)" Language="1033">
+        <Package Id="*" InstallerVersion="200" Compressed="yes" Manufacturer="$(var.ProductManufacturer)" InstallScope="perUser" Keywords="Installer" Description="Install $(var.ProductName)" />
+        <MajorUpgrade AllowDowngrades="yes" AllowSameVersionUpgrades="no" />
+        <Media Id="1" Cabinet="product.cab" EmbedCab="yes" />
+        <Icon Id="app_icon" SourceFile="$(var.AssetsDir)\app_icon.ico" />
         <Property Id="ARPPRODUCTICON" Value="app_icon" />
-
         <UI>
-            <UIRef Id="WixUI_Minimal"/>
-            <Publish Dialog="ExitDialog"
-                     Control="Finish"
-                     Event="DoAction"
-                     Value="LaunchApplication">WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed
+            <UIRef Id="WixUI_Minimal" />
+            <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApplication">WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed
             </Publish>
         </UI>
-
-        <WixVariable Id="WixUILicenseRtf" Value="$(var.DistDir)\LICENSE.rtf"/>
-        <Property Id="ARPHELPLINK" Value="https://sashgorokhov.github.io/edp/"/>
-
-        <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value="Thank you for choosing $(var.ProductName)!"/>
-        <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch $(var.ProductName)"/>
-
-        <Property Id="WixShellExecTarget" Value="[#$(var.ProductExecutable)]"/>
-        <CustomAction Id="LaunchApplication" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes"/>
-
+        <WixVariable Id="WixUILicenseRtf" Value="$(var.DistDir)\LICENSE.rtf" />
+        <Property Id="ARPHELPLINK" Value="https://sashgorokhov.github.io/edp/" />
+        <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value="Thank you for choosing $(var.ProductName)!" />
+        <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch $(var.ProductName)" />
+        <Property Id="WixShellExecTarget" Value="[#$(var.ProductExecutable)]" />
+        <CustomAction Id="LaunchApplication" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes" />
         <Directory Id="TARGETDIR" Name="SourceDir">
             <Directory Id="LocalAppDataFolder">
-                <Directory Id="InstallDir" Name="$(var.ProductName)"/>
+                <Directory Id="InstallDir" Name="$(var.ProductName)" />
             </Directory>
             <Directory Id="ProgramMenuFolder">
-                <Directory Id="ApplicationProgramsFolder" Name="$(var.ProductName)"/>
+                <Directory Id="ApplicationProgramsFolder" Name="$(var.ProductName)" />
             </Directory>
-            <Directory Id="DesktopFolder"/>
+            <Directory Id="DesktopFolder" />
         </Directory>
-
         <DirectoryRef Id="ApplicationProgramsFolder">
             <Component Id="ApplicationShortcut" Guid="af336890-4f48-41ec-abf9-a32b53e0ada8">
-                <Shortcut Id="ApplicationStartMenuShortcut"
-                          Name="$(var.ProductName)"
-                          Description="Launch $(var.ProductName)"
-                          Target="[#$(var.ProductExecutable)]"
-                          WorkingDirectory="InstallDir"/>
-                <util:InternetShortcut Id="OnlineDocumentationShortcut"
-                                       Name="Online documentation"
-                                       Target="https://sashgorokhov.github.io/edp/"
-                />
-                <Shortcut Id="UninstallProduct"
-                          Name="Uninstall"
-                          Target="[SystemFolder]msiexec.exe"
-                          Arguments="/x [ProductCode]"
-                          Description="Uninstall $(var.ProductName)"/>
-                <RemoveFolder Id="CleanUpShortCut" Directory="ApplicationProgramsFolder" On="uninstall"/>
-                <RegistryValue Root="HKCU" Key="$(var.ProductHKCUPath)" Name="installed" Type="integer" Value="1"
-                               KeyPath="yes"/>
+                <Shortcut Id="ApplicationStartMenuShortcut" Name="$(var.ProductName)" Description="Launch $(var.ProductName)" Target="[#$(var.ProductExecutable)]" WorkingDirectory="InstallDir" />
+                <util:InternetShortcut Id="OnlineDocumentationShortcut" Name="Online documentation" Target="https://sashgorokhov.github.io/edp/" />
+                <Shortcut Id="UninstallProduct" Name="Uninstall" Target="[SystemFolder]msiexec.exe" Arguments="/x [ProductCode]" Description="Uninstall $(var.ProductName)" />
+                <RemoveFolder Id="CleanUpShortCut" Directory="ApplicationProgramsFolder" On="uninstall" />
+                <RegistryValue Root="HKCU" Key="$(var.ProductHKCUPath)" Name="installed" Type="integer" Value="1" KeyPath="yes" />
             </Component>
         </DirectoryRef>
-
         <DirectoryRef Id="DesktopFolder">
             <Component Id="ApplicationShortcutDesktop" Guid="96839fdb-1d63-4f14-9993-fcbaf6c84619">
-                <Shortcut Id="ApplicationDesktopShortcut"
-                          Name="$(var.ProductName)"
-                          Description="Launch $(var.ProductName)"
-                          Target="[#$(var.ProductExecutable)]"
-                          WorkingDirectory="InstallDir"/>
-                <RemoveFolder Id="CleanupDesktopFolder" Directory="DesktopFolder" On="uninstall"/>
-                <RegistryValue Root="HKCU" Key="$(var.ProductHKCUPath)" Name="installed" Type="integer" Value="1"
-                               KeyPath="yes"/>
+                <Shortcut Id="ApplicationDesktopShortcut" Name="$(var.ProductName)" Description="Launch $(var.ProductName)" Target="[#$(var.ProductExecutable)]" WorkingDirectory="InstallDir" />
+                <RemoveFolder Id="CleanupDesktopFolder" Directory="DesktopFolder" On="uninstall" />
+                <RegistryValue Root="HKCU" Key="$(var.ProductHKCUPath)" Name="installed" Type="integer" Value="1" KeyPath="yes" />
             </Component>
         </DirectoryRef>
-
         <Feature Id="DefaultFeature" Level="1">
-            <ComponentGroupRef Id="DIST_DIR_FILES"/>
-            <ComponentRef Id="ApplicationShortcut"/>
-            <ComponentRef Id="ApplicationShortcutDesktop"/>
+            <ComponentGroupRef Id="DIST_DIR_FILES" />
+            <ComponentRef Id="ApplicationShortcut" />
+            <ComponentRef Id="ApplicationShortcutDesktop" />
         </Feature>
     </Product>
 </Wix>
