@@ -159,7 +159,7 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
 
     @plugins.bind_signal(game_state_set_signal)
     def bootstrap_starpos_db(self, state: GameStateData):
-        if state.location.pos:
+        if state.location.pos or state.location.address:
             self._starpos_db[state.location.address] = state.location.pos
 
     def process_buffered_events(self, events: List[journal.Event]):
