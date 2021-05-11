@@ -159,6 +159,7 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
 
     @plugins.bind_signal(game_state_set_signal)
     def bootstrap_starpos_db(self, state: GameStateData):
+        """Set initial starpos from initialized gamestate"""
         if state.location.pos and state.location.address:
             self._starpos_db[state.location.address] = state.location.pos
 

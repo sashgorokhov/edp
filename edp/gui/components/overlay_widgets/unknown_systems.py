@@ -3,12 +3,18 @@
 
 Poll EDSM for current targeted system. Show information if it found or not.
 """
-from edp import journal
+import json
+import logging
+
+from edp import journal, config
 from edp.contrib import edsm
 from edp.gui.compiled.edsm_unknown_systems import Ui_Form
 from edp.gui.components.base import JournalEventHandlerMixin
 from edp.gui.components.overlay_widgets.base import BaseOverlayWidget
 from edp.gui.components.overlay_widgets.manager import register
+
+
+logger = logging.getLogger(__name__)
 
 
 @register
@@ -20,6 +26,9 @@ class UnknownSystemsWidget(Ui_Form, JournalEventHandlerMixin, BaseOverlayWidget)
         super(UnknownSystemsWidget, self).__init__()
         self.setupUi(self)
 
+        with open(config.PERSONAL_DATA_DIR / 'Star data' / 'systemsWithoutCoordinates.json') as f:
+            self.known_stars = {i['name'] for i in json.load(f)}
+
         self.edsm_api = edsm.EDSMApi()
 
     def on_journal_event(self, event: journal.Event):
@@ -30,7 +39,15 @@ class UnknownSystemsWidget(Ui_Form, JournalEventHandlerMixin, BaseOverlayWidget)
         if event.name == 'FSDTarget':
             self.system_label.setText(event.data['Name'])
 
-            if self.edsm_api.get_system(event.data['Name']):
+            try:
+                edsm_system = self.edsm_api.get_system(event.data['Name'])
+            except:
+                logger.exception(f"Error getting system from edsm: {event.data['Name']}")
+                edsm_system = False
+
+            found_system = event.data['Name'] in self.known_stars or edsm_system
+
+            if found_system:
                 self.status_label.setText('Found')
                 self.status_label.setProperty('status', True)
             else:
