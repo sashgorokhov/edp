@@ -82,6 +82,7 @@ class OutfittingMessageSchema(_SchemaMessage):
     stationName: str
     marketId: int
     horizons: bool
+    odyssey: bool
     timestamp: str
     modules: List[str]
 
@@ -94,6 +95,7 @@ class ShipyardMessageSchema(_SchemaMessage):
     stationName: str
     marketId: int
     horizons: bool
+    odyssey: bool
     timestamp: str
     ships: List[str]
 
@@ -106,6 +108,7 @@ class CommodityMessageSchema(_SchemaMessage):
     stationName: str
     marketId: int
     horizons: bool
+    odyssey: bool
     timestamp: str
     commodities: List[Dict[str, Any]]
     economies: List[Dict[str, Any]]
@@ -123,6 +126,8 @@ class JournalMessageSchema(_SchemaMessage):
     SystemAddress: int
     Factions: List[Dict]
     optional: Dict
+    horizons: bool
+    odyssey: bool
 
 
 class EDDNSettings(BaseSettings):
@@ -207,7 +212,9 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
             StarPos=star_pos,
             SystemAddress=system_address,
             Factions=[filter_faction(f) for f in event.data.get('Factions', [])],
-            optional=optional
+            optional=optional,
+            horizons=state.horizons,
+            odyssey=state.odyssey,
         )
 
         payload_dataclass = EDDNSchema(
@@ -253,6 +260,7 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
             stationName=gamestate.location.station.name,
             marketId=gamestate.location.station.market,
             horizons=gamestate.horizons,
+            odyssey=gamestate.odyssey,
             timestamp=datetime.datetime.utcnow().isoformat(timespec='seconds') + 'Z',
             modules=modules,
         )
@@ -299,6 +307,7 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
             stationName=gamestate.location.station.name,
             marketId=gamestate.location.station.market,
             horizons=gamestate.horizons,
+            odyssey=gamestate.odyssey,
             timestamp=datetime.datetime.utcnow().isoformat(timespec='seconds') + 'Z',
             ships=ships,
         )
@@ -365,7 +374,8 @@ class EDDNPlugin(BufferedEventsMixin, BasePlugin):
             timestamp=datetime.datetime.utcnow().isoformat(timespec='seconds') + 'Z',
             commodities=commodities,
             economies=economies,
-            optional=optional
+            optional=optional,
+            odyssey=gamestate.odyssey,
         )
 
         payload_dataclass = EDDNSchema(

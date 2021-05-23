@@ -37,6 +37,7 @@ class GameStateData(entities.BaseEntity):
     running: bool = False
     version: VersionInfo = dataclasses.field(default_factory=VersionInfo)
     horizons: bool = False
+    odyssey: bool = False
     solo: bool = False
 
     def __init__(self):
@@ -165,6 +166,7 @@ def load_game_event(event: Event, state: GameStateData):
     state.credits = data['Credits']
 
     state.horizons = data['Horizons']
+    state.odyssey = data['Odyssey']
 
     state.solo = data.get('GameMode', 'Solo') == 'Solo'
 
