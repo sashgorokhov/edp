@@ -24,7 +24,9 @@ def test_eddn_schema_to_dict():
             Factions=[],
             optional={
                 'foo': 'bar'
-            }
+            },
+            horizons=False,
+            odyssey=True
         )
     )
 
